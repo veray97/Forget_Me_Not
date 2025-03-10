@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forget Me Not - 私人事件</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .back-btn {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .notes-list {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .note-editor {
+            flex: 2;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .note-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .note-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .note-item.active {
+            background-color: #fde9e8;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .note-preview {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .note-date {
+            font-size: 0.8em;
+            color: #999;
+            text-align: right;
+        }
+        
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .new-btn {
+            background-color: #e74c3c;
+        }
+        
+        .new-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .date-input {
+            margin-bottom: 15px;
+        }
+        
+        .date-input label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <button class="back-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </button>
+        <h1>Private Events</h1>
+        <p>记录您的私人事件和日程</p>
+    </header>
+    
+    <div class="container">
+        <div class="notes-list" id="notes-list">
+            <div class="loading">加载事件中...</div>
+        </div>
+        
+        <div class="note-editor">
+            <input type="text" id="note-title" placeholder="事件标题">
+            
+            <div class="date-input">
+                <label for="event-date">事件日期</label>
+                <input type="date" id="event-date">
+            </div>
+            
+            <textarea id="note-content" placeholder="在这里记录事件详情..."></textarea>
+            <div class="button-group">
+                <button id="save-btn">保存事件</button>
+                <button id="new-btn" class="new-btn">新建事件</button>
+                <button id="delete-btn" class="delete-btn">删除事件</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Firebase 配置 -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- 私人事件逻辑 -->
+    <script>
+        // DOM 元素
+        const notesList = document.getElementById('notes-list');
+        const titleInput = document.getElementById('note-title');
+        const contentTextarea = document.getElementById('note-content');
+        const eventDateInput = document.getElementById('event-date');
+        const saveBtn = document.getElementById('save-btn');
+        const newBtn = document.getElementById('new-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+
+        // 当前选中的事件
+        let currentNoteId = null;
+        
+        // 私人事件的Firebase引用
+        const eventsRef = firebase.database().ref('events');
+
+        // 设置今天的日期为默认值
+        const today = new Date();
+        const formattedToday = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        eventDateInput.value = formattedToday;
+
+        // 加载所有事件
+        function loadNotes() {
+            notesList.innerHTML = '<div class="loading">加载事件中...</div>';
+            
+            eventsRef.orderByChild('timestamp').once('value', (snapshot) => {
+                notesList.innerHTML = '';
+                
+                const notes = [];
+                snapshot.forEach((childSnapshot) => {
+                    const note = childSnapshot.val();
+                    note.id = childSnapshot.key;
+                    notes.push(note);
+                });
+                
+                // 按时间倒序排列
+                notes.reverse().forEach((note) => {
+                    const noteItem = createNoteItem(note);
+                    notesList.appendChild(noteItem);
+                });
+                
+                if (notes.length === 0) {
+                    notesList.innerHTML = '<div class="note-item">没有事件，点击"新建事件"开始</div>';
+                }
+            });
+        }
+
+        // 创建事件列表项
+        function createNoteItem(note) {
+            const noteItem = document.createElement('div');
+            noteItem.className = 'note-item';
+            noteItem.dataset.id = note.id;
+            
+            const date = new Date(note.timestamp);
+            const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            
+            // 显示事件日期（如果有）
+            const eventDateDisplay = note.eventDate ? `<div><strong>日期:</strong> ${note.eventDate}</div>` : '';
+            
+            noteItem.innerHTML = `
+                <div class="note-title">${note.title || '无标题'}</div>
+                ${eventDateDisplay}
+                <div class="note-preview">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</div>
+                <div class="note-date">创建于: ${formattedDate}</div>
+            `;
+            
+            noteItem.addEventListener('click', () => {
+                document.querySelectorAll('.note-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                noteItem.classList.add('active');
+                
+                currentNoteId = note.id;
+                titleInput.value = note.title || '';
+                contentTextarea.value = note.content || '';
+                eventDateInput.value = note.eventDate || formattedToday;
+            });
+            
+            return noteItem;
+        }
+
+        // 保存事件
+        function saveNote() {
+            const title = titleInput.value.trim();
+            const content = contentTextarea.value.trim();
+            const eventDate = eventDateInput.value;
+            
+            if (!content) {
+                alert('事件内容不能为空');
+                return;
+            }
+            
+            const noteData = {
+                title: title,
+                content: content,
+                eventDate: eventDate,
+                timestamp: Date.now()
+            };
+            
+            if (currentNoteId) {
+                // 更新现有事件
+                eventsRef.child(currentNoteId).update(noteData)
+                    .then(() => {
+                        loadNotes();
+                    })
+                    .catch((error) => {
+                        console.error('更新事件失败:', error);
+                        alert('更新事件失败，请重试');
+                    });
+            } else {
+                // 创建新事件
+                eventsRef.push(noteData)
+                    .then((ref) => {
+                        currentNoteId = ref.key;
+                        loadNotes();
+                    })
+                    .catch((error) => {
+                        console.error('保存事件失败:', error);
+                        alert('保存事件失败，请重试');
+                    });
+            }
+        }
+
+        // 删除事件
+        function deleteNote() {
+            if (!currentNoteId) {
+                alert('请先选择一个事件');
+                return;
+            }
+            
+            if (confirm('确定要删除这个事件吗？此操作不可撤销。')) {
+                eventsRef.child(currentNoteId).remove()
+                    .then(() => {
+                        currentNoteId = null;
+                        titleInput.value = '';
+                        contentTextarea.value = '';
+                        eventDateInput.value = formattedToday;
+                        loadNotes();
+                    })
+                    .catch((error) => {
+                        console.error('删除事件失败:', error);
+                        alert('删除事件失败，请重试');
+                    });
+            }
+        }
+
+        // 新建事件
+        function newNote() {
+            currentNoteId = null;
+            titleInput.value = '';
+            contentTextarea.value = '';
+            eventDateInput.value = formattedToday;
+            
+            document.querySelectorAll('.note-item').forEach(item => {
+                item.classList.remove('active');
+            });
+        }
+
+        // 事件监听
+        saveBtn.addEventListener('click', saveNote);
+        newBtn.addEventListener('click', newNote);
+        deleteBtn.addEventListener('click', deleteNote);
+
+        // 初始加载
+        loadNotes();
+    </script>
+</body>
+</html> 
