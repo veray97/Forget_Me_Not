@@ -213,28 +213,25 @@
     
     <!-- 私人事件逻辑 -->
     <script>
-        // 等待 Firebase 初始化完成
-        firebase.app().then(() => {
-            // DOM 元素
-            const notesList = document.getElementById('notes-list');
-            const titleInput = document.getElementById('note-title');
-            const contentTextarea = document.getElementById('note-content');
-            const eventDateInput = document.getElementById('event-date');
-            const saveBtn = document.getElementById('save-btn');
-            const newBtn = document.getElementById('new-btn');
-            const deleteBtn = document.getElementById('delete-btn');
+        // DOM 元素
+        const notesList = document.getElementById('notes-list');
+        const titleInput = document.getElementById('note-title');
+        const contentTextarea = document.getElementById('note-content');
+        const eventDateInput = document.getElementById('event-date');
+        const saveBtn = document.getElementById('save-btn');
+        const newBtn = document.getElementById('new-btn');
+        const deleteBtn = document.getElementById('delete-btn');
 
-            // 当前选中的事件
-            let currentNoteId = null;
-            
-            // 私人事件的Firebase引用
-            const eventsRef = firebase.database().ref('events');
+        // 当前选中的事件
+        let currentNoteId = null;
 
-            // 设置今天的日期为默认值
-            const today = new Date();
-            const formattedToday = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-            eventDateInput.value = formattedToday;
+        // 设置今天的日期为默认值
+        const today = new Date();
+        const formattedToday = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        eventDateInput.value = formattedToday;
 
+        // 等待 DOM 加载完成
+        document.addEventListener('DOMContentLoaded', () => {
             // 事件监听
             saveBtn.addEventListener('click', saveNote);
             newBtn.addEventListener('click', newNote);
@@ -242,8 +239,6 @@
 
             // 初始加载
             loadNotes();
-        }).catch(error => {
-            console.error('Firebase 初始化失败:', error);
         });
 
         // 加载所有事件

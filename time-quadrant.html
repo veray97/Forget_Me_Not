@@ -225,22 +225,17 @@
     
     <!-- 时间象限逻辑 -->
     <script>
-        // 等待 Firebase 初始化完成
-        firebase.app().then(() => {
-            // 页面加载时获取并显示所有项目
-            document.addEventListener('DOMContentLoaded', () => {
-                // 为每个添加按钮添加事件监听器
-                document.querySelectorAll('.add-btn').forEach(btn => {
-                    const quadrant = btn.closest('.quadrant');
-                    const quadrantNumber = quadrant.dataset.quadrant;
-                    btn.onclick = () => addNewProject(quadrantNumber);
-                });
-
-                // 加载项目
-                loadProjects();
+        // 页面加载时获取并显示所有项目
+        document.addEventListener('DOMContentLoaded', () => {
+            // 为每个添加按钮添加事件监听器
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                const quadrant = btn.closest('.quadrant');
+                const quadrantNumber = quadrant.dataset.quadrant;
+                btn.onclick = () => addNewProject(quadrantNumber);
             });
-        }).catch(error => {
-            console.error('Firebase 初始化失败:', error);
+
+            // 加载项目
+            loadProjects();
         });
         
         // 添加新项目
