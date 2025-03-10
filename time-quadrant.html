@@ -189,29 +189,28 @@
     <div class="quadrant-container">
         <div class="quadrant quadrant-1" data-quadrant="1">
             <div class="quadrant-title">重要不紧急</div>
-            <div class="add-btn" onclick="addNewProject(1)">
+            <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
-            <!-- 项目点将在这里动态添加 -->
         </div>
         
         <div class="quadrant quadrant-2" data-quadrant="2">
             <div class="quadrant-title">重要且紧急</div>
-            <div class="add-btn" onclick="addNewProject(2)">
+            <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
         <div class="quadrant quadrant-3" data-quadrant="3">
             <div class="quadrant-title">不重要不紧急</div>
-            <div class="add-btn" onclick="addNewProject(3)">
+            <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
         <div class="quadrant quadrant-4" data-quadrant="4">
             <div class="quadrant-title">紧急不重要</div>
-            <div class="add-btn" onclick="addNewProject(4)">
+            <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
@@ -226,11 +225,32 @@
     
     <!-- 时间象限逻辑 -->
     <script>
-        // 项目库的Firebase引用
-        const projectsRef = firebase.database().ref('projects');
-        
         // 页面加载时获取并显示所有项目
-        document.addEventListener('DOMContentLoaded', loadProjects);
+        document.addEventListener('DOMContentLoaded', () => {
+            // 为每个添加按钮添加事件监听器
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                const quadrant = btn.closest('.quadrant');
+                const quadrantNumber = quadrant.dataset.quadrant;
+                btn.onclick = () => addNewProject(quadrantNumber);
+            });
+
+            // 加载项目
+            loadProjects();
+        });
+        
+        // 添加新项目
+        function addNewProject(quadrantNumber) {
+            // 将象限信息存储在会话存储中
+            sessionStorage.setItem('newProjectQuadrant', quadrantNumber);
+            
+            // 跳转到项目库页面
+            window.location.href = 'project-library.html?new=true&quadrant=' + quadrantNumber;
+        }
+        
+        // 打开现有项目
+        function openProject(projectId) {
+            window.location.href = `project-library.html?id=${projectId}`;
+        }
         
         // 加载所有项目并在相应象限中显示
         function loadProjects() {
@@ -285,20 +305,6 @@
             // 添加到象限
             quadrant.appendChild(dot);
             quadrant.appendChild(tooltip);
-        }
-        
-        // 添加新项目
-        function addNewProject(quadrantNumber) {
-            // 将象限信息存储在会话存储中
-            sessionStorage.setItem('newProjectQuadrant', quadrantNumber);
-            
-            // 跳转到项目库页面
-            window.location.href = 'project-library.html?new=true&quadrant=' + quadrantNumber;
-        }
-        
-        // 打开现有项目
-        function openProject(projectId) {
-            window.location.href = `project-library.html?id=${projectId}`;
         }
     </script>
 </body>
