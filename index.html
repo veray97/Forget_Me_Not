@@ -1,37 +1,181 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Website</title>
+    <title>Forget Me Not - 笔记应用</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        h1 {
             color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .notes-list {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .note-editor {
+            flex: 2;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .note-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .note-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .note-item.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .note-preview {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .note-date {
+            font-size: 0.8em;
+            color: #999;
+            text-align: right;
+        }
+        
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .new-btn {
+            background-color: #2196f3;
+        }
+        
+        .new-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Forget Me Not</h1>
+        <p>记录你的想法，永不遗忘</p>
+    </header>
+    
     <div class="container">
-        <h1>Welcome to Forget Me Not!</h1>
-        <p>Your personal secretary</p>
+        <div class="notes-list" id="notes-list">
+            <div class="loading">加载笔记中...</div>
+        </div>
         
-        <!-- 在这里添加更多内容 -->
-        
+        <div class="note-editor">
+            <input type="text" id="note-title" placeholder="笔记标题">
+            <textarea id="note-content" placeholder="在这里写下你的想法..."></textarea>
+            <div class="button-group">
+                <button id="save-btn">保存笔记</button>
+                <button id="new-btn" class="new-btn">新建笔记</button>
+                <button id="delete-btn" class="delete-btn">删除笔记</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // 在这里添加 JavaScript 代码
-        console.log('Website is running');
-    </script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Firebase 配置 (不要提交到Git) -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- 应用逻辑 -->
+    <script src="app.js"></script>
 </body>
-</html>
+</html> 
