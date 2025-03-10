@@ -252,31 +252,44 @@
     
     <!-- 项目库逻辑 -->
     <script>
-        // DOM 元素
-        const notesList = document.getElementById('notes-list');
-        const titleInput = document.getElementById('note-title');
-        const contentTextarea = document.getElementById('note-content');
-        const quadrantSelect = document.getElementById('quadrant-select');
-        const saveBtn = document.getElementById('save-btn');
-        const newBtn = document.getElementById('new-btn');
-        const deleteBtn = document.getElementById('delete-btn');
-        const backBtn = document.getElementById('back-btn');
+        // 等待 Firebase 初始化完成
+        firebase.app().then(() => {
+            // DOM 元素
+            const notesList = document.getElementById('notes-list');
+            const titleInput = document.getElementById('note-title');
+            const contentTextarea = document.getElementById('note-content');
+            const quadrantSelect = document.getElementById('quadrant-select');
+            const saveBtn = document.getElementById('save-btn');
+            const newBtn = document.getElementById('new-btn');
+            const deleteBtn = document.getElementById('delete-btn');
+            const backBtn = document.getElementById('back-btn');
 
-        // 当前选中的项目
-        let currentNoteId = null;
-        
-        // 项目库的Firebase引用
-        const projectsRef = firebase.database().ref('projects');
-        
-        // 获取URL参数
-        const urlParams = new URLSearchParams(window.location.search);
-        const isNewProject = urlParams.get('new') === 'true';
-        const quadrantParam = urlParams.get('quadrant');
-        const projectIdParam = urlParams.get('id');
-        
-        // 设置返回按钮行为
-        backBtn.addEventListener('click', () => {
-            window.location.href = 'time-quadrant.html';
+            // 当前选中的项目
+            let currentNoteId = null;
+            
+            // 项目库的Firebase引用
+            const projectsRef = firebase.database().ref('projects');
+            
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const isNewProject = urlParams.get('new') === 'true';
+            const quadrantParam = urlParams.get('quadrant');
+            const projectIdParam = urlParams.get('id');
+            
+            // 设置返回按钮行为
+            backBtn.addEventListener('click', () => {
+                window.location.href = 'time-quadrant.html';
+            });
+
+            // 初始化页面
+            initPage();
+
+            // 事件监听
+            saveBtn.addEventListener('click', saveNote);
+            newBtn.addEventListener('click', newNote);
+            deleteBtn.addEventListener('click', deleteNote);
+        }).catch(error => {
+            console.error('Firebase 初始化失败:', error);
         });
 
         // 初始化页面
@@ -460,14 +473,6 @@
                 item.classList.remove('active');
             });
         }
-
-        // 事件监听
-        saveBtn.addEventListener('click', saveNote);
-        newBtn.addEventListener('click', newNote);
-        deleteBtn.addEventListener('click', deleteNote);
-
-        // 初始化页面
-        initPage();
     </script>
 </body>
 </html> 
