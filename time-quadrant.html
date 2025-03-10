@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forget Me Not - 时间管理象限</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .back-btn {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            background: none;
+            border: none;
+            color: #3498db;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .quadrant-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            height: 70vh;
+            margin-top: 20px;
+        }
+        
+        .quadrant {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quadrant-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .quadrant-1 {
+            border-top: 5px solid #3498db;
+        }
+        
+        .quadrant-2 {
+            border-top: 5px solid #e74c3c;
+        }
+        
+        .quadrant-3 {
+            border-top: 5px solid #2ecc71;
+        }
+        
+        .quadrant-4 {
+            border-top: 5px solid #f39c12;
+        }
+        
+        .add-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, background-color 0.2s;
+            z-index: 10;
+        }
+        
+        .quadrant-2 .add-btn {
+            background-color: #e74c3c;
+        }
+        
+        .quadrant-3 .add-btn {
+            background-color: #2ecc71;
+        }
+        
+        .quadrant-4 .add-btn {
+            background-color: #f39c12;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .project-dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 5;
+        }
+        
+        .project-dot:hover {
+            transform: scale(1.2);
+        }
+        
+        .quadrant-1 .project-dot {
+            background-color: #3498db;
+        }
+        
+        .quadrant-2 .project-dot {
+            background-color: #e74c3c;
+        }
+        
+        .quadrant-3 .project-dot {
+            background-color: #2ecc71;
+        }
+        
+        .quadrant-4 .project-dot {
+            background-color: #f39c12;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            z-index: 20;
+        }
+        
+        .project-dot:hover + .tooltip {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .quadrant-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+                height: auto;
+            }
+            
+            .quadrant {
+                height: 200px;
+            }
+        }
+    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <button class="back-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </button>
+        <h1>时间管理象限</h1>
+        <p>根据优先级管理您的项目</p>
+    </header>
+    
+    <div class="quadrant-container">
+        <div class="quadrant quadrant-1" data-quadrant="1">
+            <div class="quadrant-title">重要不紧急</div>
+            <div class="add-btn" onclick="addNewProject(1)">
+                <i class="fas fa-plus"></i>
+            </div>
+            <!-- 项目点将在这里动态添加 -->
+        </div>
+        
+        <div class="quadrant quadrant-2" data-quadrant="2">
+            <div class="quadrant-title">重要且紧急</div>
+            <div class="add-btn" onclick="addNewProject(2)">
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        
+        <div class="quadrant quadrant-3" data-quadrant="3">
+            <div class="quadrant-title">不重要不紧急</div>
+            <div class="add-btn" onclick="addNewProject(3)">
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        
+        <div class="quadrant quadrant-4" data-quadrant="4">
+            <div class="quadrant-title">紧急不重要</div>
+            <div class="add-btn" onclick="addNewProject(4)">
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Firebase 配置 -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- 时间象限逻辑 -->
+    <script>
+        // 项目库的Firebase引用
+        const projectsRef = firebase.database().ref('projects');
+        
+        // 页面加载时获取并显示所有项目
+        document.addEventListener('DOMContentLoaded', loadProjects);
+        
+        // 加载所有项目并在相应象限中显示
+        function loadProjects() {
+            projectsRef.once('value', (snapshot) => {
+                snapshot.forEach((childSnapshot) => {
+                    const project = childSnapshot.val();
+                    project.id = childSnapshot.key;
+                    
+                    // 只显示有象限属性的项目
+                    if (project.quadrant) {
+                        createProjectDot(project);
+                    }
+                });
+            });
+        }
+        
+        // 创建项目点
+        function createProjectDot(project) {
+            const quadrant = document.querySelector(`.quadrant-${project.quadrant}`);
+            if (!quadrant) return;
+            
+            // 计算随机位置（避开边缘和按钮）
+            const quadrantRect = quadrant.getBoundingClientRect();
+            const maxX = quadrantRect.width - 60; // 减去点的宽度和边距
+            const maxY = quadrantRect.height - 60; // 减去点的高度和边距
+            
+            // 确保不会与添加按钮重叠
+            let posX = 20 + Math.random() * maxX;
+            let posY = 20 + Math.random() * maxY;
+            
+            // 避开右下角的添加按钮
+            if (posX > maxX - 40 && posY > maxY - 40) {
+                posX -= 60;
+                posY -= 60;
+            }
+            
+            // 创建项目点
+            const dot = document.createElement('div');
+            dot.className = 'project-dot';
+            dot.style.left = `${posX}px`;
+            dot.style.top = `${posY}px`;
+            dot.dataset.id = project.id;
+            dot.addEventListener('click', () => openProject(project.id));
+            
+            // 创建提示框
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.style.left = `${posX}px`;
+            tooltip.style.top = `${posY - 25}px`;
+            tooltip.textContent = project.title || '无标题项目';
+            
+            // 添加到象限
+            quadrant.appendChild(dot);
+            quadrant.appendChild(tooltip);
+        }
+        
+        // 添加新项目
+        function addNewProject(quadrantNumber) {
+            // 将象限信息存储在会话存储中
+            sessionStorage.setItem('newProjectQuadrant', quadrantNumber);
+            
+            // 跳转到项目库页面
+            window.location.href = 'project-library.html?new=true&quadrant=' + quadrantNumber;
+        }
+        
+        // 打开现有项目
+        function openProject(projectId) {
+            window.location.href = `project-library.html?id=${projectId}`;
+        }
+    </script>
+</body>
+</html> 
