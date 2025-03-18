@@ -116,12 +116,17 @@
         
         .project-dot {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             cursor: pointer;
             transition: transform 0.2s;
             z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: none;
         }
         
         .project-dot:hover {
@@ -129,19 +134,19 @@
         }
         
         .quadrant-1 .project-dot {
-            background-color: #3498db;
+            background-color: transparent;
         }
         
         .quadrant-2 .project-dot {
-            background-color: #e74c3c;
+            background-color: transparent;
         }
         
         .quadrant-3 .project-dot {
-            background-color: #2ecc71;
+            background-color: transparent;
         }
         
         .quadrant-4 .project-dot {
-            background-color: #f39c12;
+            background-color: transparent;
         }
         
         .tooltip {
@@ -160,6 +165,88 @@
         
         .project-dot:hover + .tooltip {
             opacity: 1;
+        }
+        
+        /* 弹出表单样式 */
+        .popup-form {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .submit-btn:hover {
+            background-color: #45a049;
         }
         
         @media (max-width: 768px) {
@@ -215,62 +302,225 @@
             </div>
         </div>
     </div>
-
+    
+    <!-- 弹出式表单 -->
+    <div class="popup-form" id="popup-form">
+        <div class="popup-content">
+            <div class="popup-header">
+                <div class="popup-title">添加新项目</div>
+                <button class="close-btn" id="close-popup">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="project-title">项目标题</label>
+                <input type="text" id="project-title" placeholder="输入项目标题">
+            </div>
+            <div class="form-group">
+                <label for="project-content">项目内容</label>
+                <textarea id="project-content" placeholder="在这里记录项目详情..."></textarea>
+            </div>
+            <input type="hidden" id="project-quadrant">
+            <button class="submit-btn" id="submit-project">保存项目</button>
+        </div>
+    </div>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <!-- Firebase 配置 -->
     <script src="firebase-config.js"></script>
     
     <!-- 时间象限逻辑 -->
     <script>
+        // DOM 元素
+        const popupForm = document.getElementById('popup-form');
+        const closePopup = document.getElementById('close-popup');
+        const projectTitle = document.getElementById('project-title');
+        const projectContent = document.getElementById('project-content');
+        const projectQuadrant = document.getElementById('project-quadrant');
+        const submitProject = document.getElementById('submit-project');
+        
         // 页面加载时获取并显示所有项目
         document.addEventListener('DOMContentLoaded', () => {
+            // 检查用户是否已登录
+            checkAuth().then(user => {
+                // 用户已登录，继续加载页面
+                initPage();
+            }).catch(error => {
+                console.error('认证检查失败:', error);
+                // 错误处理已在checkAuth函数中完成（重定向到登录页面）
+            });
+        });
+        
+        // 初始化页面
+        function initPage() {
             // 为每个添加按钮添加事件监听器
             document.querySelectorAll('.add-btn').forEach(btn => {
                 const quadrant = btn.closest('.quadrant');
                 const quadrantNumber = quadrant.dataset.quadrant;
-                btn.onclick = () => addNewProject(quadrantNumber);
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡到象限
+                    // 直接跳转到项目详情页面，创建新项目
+                    window.location.href = `project-detail.html?quadrant=${quadrantNumber}`;
+                };
             });
+
+            // 为每个象限添加点击事件
+            document.querySelectorAll('.quadrant').forEach(quadrant => {
+                const quadrantNumber = quadrant.dataset.quadrant;
+                quadrant.addEventListener('click', () => {
+                    // 直接跳转到项目详情页面，创建新项目
+                    window.location.href = `project-detail.html?quadrant=${quadrantNumber}`;
+                });
+            });
+
+            // 关闭弹窗按钮
+            closePopup.addEventListener('click', () => {
+                popupForm.style.display = 'none';
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            popupForm.addEventListener('click', (e) => {
+                if (e.target === popupForm) {
+                    popupForm.style.display = 'none';
+                }
+            });
+            
+            // 提交表单
+            submitProject.addEventListener('click', addProjectDirectly);
 
             // 加载项目
             loadProjects();
-        });
-        
-        // 添加新项目
-        function addNewProject(quadrantNumber) {
-            // 将象限信息存储在会话存储中
-            sessionStorage.setItem('newProjectQuadrant', quadrantNumber);
-            
-            // 跳转到项目库页面
-            window.location.href = 'project-library.html?new=true&quadrant=' + quadrantNumber;
         }
         
-        // 打开现有项目
-        function openProject(projectId) {
-            window.location.href = `project-library.html?id=${projectId}`;
+        // 显示添加项目表单
+        function showAddProjectForm(quadrantNumber) {
+            // 清空表单
+            projectTitle.value = '';
+            projectContent.value = '';
+            projectQuadrant.value = quadrantNumber;
+            
+            // 显示弹窗
+            popupForm.style.display = 'flex';
+        }
+        
+        // 直接添加项目到当前象限
+        function addProjectDirectly() {
+            const title = projectTitle.value.trim();
+            const content = projectContent.value.trim();
+            const quadrant = projectQuadrant.value;
+            
+            if (!content) {
+                alert('项目内容不能为空');
+                return;
+            }
+            
+            const projectData = {
+                title: title,
+                content: content,
+                quadrant: quadrant,
+                timestamp: Date.now()
+            };
+            
+            // 获取用户特定的项目引用
+            const userProjects = userProjectsRef();
+            if (!userProjects) {
+                alert('用户未登录，无法保存项目');
+                return;
+            }
+            
+            // 保存到 Firebase
+            userProjects.push(projectData)
+                .then((ref) => {
+                    // 关闭弹窗
+                    popupForm.style.display = 'none';
+                    
+                    // 创建并显示新项目点
+                    const project = projectData;
+                    project.id = ref.key;
+                    createProjectDot(project);
+                })
+                .catch((error) => {
+                    console.error('保存项目失败:', error);
+                    alert('保存项目失败，请重试');
+                });
         }
         
         // 加载所有项目并在相应象限中显示
         function loadProjects() {
-            projectsRef.once('value', (snapshot) => {
-                snapshot.forEach((childSnapshot) => {
-                    const project = childSnapshot.val();
-                    project.id = childSnapshot.key;
-                    
-                    // 只显示有象限属性的项目
-                    if (project.quadrant) {
+            console.log('开始加载项目...');
+            
+            // 清除现有项目点
+            document.querySelectorAll('.project-dot').forEach(dot => dot.remove());
+            document.querySelectorAll('.tooltip').forEach(tooltip => tooltip.remove());
+            
+            // 检查用户登录状态
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                console.error('用户未登录，无法加载项目');
+                return;
+            }
+            
+            console.log('当前登录用户:', user.uid);
+            
+            // 获取用户特定的项目引用
+            const userProjects = userProjectsRef();
+            if (!userProjects) {
+                console.error('获取用户项目引用失败');
+                return;
+            }
+            
+            console.log('用户项目引用:', userProjects.toString());
+            
+            // 从 Firebase 获取项目
+            userProjects.once('value', (snapshot) => {
+                const projects = snapshot.val();
+                console.log('已获取项目数据:', projects);
+                
+                if (projects) {
+                    let projectCount = 0;
+                    Object.keys(projects).forEach(key => {
+                        const project = projects[key];
+                        project.id = key;
+                        
+                        // 检查项目是否有象限信息
+                        if (!project.quadrant) {
+                            console.warn(`项目 ${key} 缺少象限信息，将跳过显示`);
+                            return;
+                        }
+                        
+                        console.log(`正在创建项目点:`, project);
                         createProjectDot(project);
-                    }
-                });
+                        projectCount++;
+                    });
+                    
+                    console.log(`共加载了 ${projectCount} 个项目`);
+                } else {
+                    console.log('没有找到项目数据');
+                }
+            }).catch(error => {
+                console.error('加载项目失败:', error);
             });
+        }
+        
+        // 打开现有项目
+        function openProject(projectId) {
+            // 跳转到项目详情页面
+            window.location.href = `project-detail.html?id=${projectId}`;
         }
         
         // 创建项目点
         function createProjectDot(project) {
-            const quadrant = document.querySelector(`.quadrant-${project.quadrant}`);
-            if (!quadrant) return;
+            const quadrantNum = project.quadrant.toString();
+            const quadrant = document.querySelector(`.quadrant-${quadrantNum}`);
+            
+            if (!quadrant) {
+                console.error(`找不到象限 ${quadrantNum} 的DOM元素`);
+                return;
+            }
+            
+            console.log(`在象限 ${quadrantNum} 中创建项目点`);
             
             // 计算随机位置（避开边缘和按钮）
             const quadrantRect = quadrant.getBoundingClientRect();
@@ -293,7 +543,32 @@
             dot.style.left = `${posX}px`;
             dot.style.top = `${posY}px`;
             dot.dataset.id = project.id;
-            dot.addEventListener('click', () => openProject(project.id));
+            
+            // 根据象限设置不同的表情符号
+            let emoji = '';
+            switch (quadrantNum) {
+                case '1': // 重要不紧急
+                    emoji = '🌴';
+                    break;
+                case '2': // 重要且紧急
+                    emoji = '🔥';
+                    break;
+                case '3': // 不重要不紧急
+                    emoji = '🪵';
+                    break;
+                case '4': // 紧急不重要
+                    emoji = '🚒';
+                    break;
+                default:
+                    emoji = '📌';
+            }
+            dot.textContent = emoji;
+            
+            dot.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡到象限
+                console.log(`点击了项目 ${project.id}`);
+                openProject(project.id);
+            });
             
             // 创建提示框
             const tooltip = document.createElement('div');
@@ -305,6 +580,8 @@
             // 添加到象限
             quadrant.appendChild(dot);
             quadrant.appendChild(tooltip);
+            
+            console.log(`项目点已添加到象限 ${quadrantNum}`);
         }
     </script>
 </body>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forget Me Not - 登录</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .toggle-form a {
+            color: #3498db;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .success-message {
+            color: #2ecc71;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .login-form, .register-form {
+            display: none;
+        }
+        
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Forget Me Not</h1>
+        
+        <!-- 登录表单 -->
+        <div class="login-form active" id="login-form">
+            <h2>登录</h2>
+            <div class="form-group">
+                <label for="login-email">邮箱</label>
+                <input type="email" id="login-email" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+                <div class="error-message" id="login-error"></div>
+            </div>
+            <button class="btn" id="login-btn">登录</button>
+            <div class="toggle-form">
+                <span>还没有账号？</span>
+                <a id="show-register">立即注册</a>
+            </div>
+        </div>
+        
+        <!-- 注册表单 -->
+        <div class="register-form" id="register-form">
+            <h2>注册</h2>
+            <div class="form-group">
+                <label for="register-email">邮箱</label>
+                <input type="email" id="register-email" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+                <label for="register-password">密码</label>
+                <input type="password" id="register-password" placeholder="请输入密码（至少6位）">
+            </div>
+            <div class="form-group">
+                <label for="register-confirm-password">确认密码</label>
+                <input type="password" id="register-confirm-password" placeholder="请再次输入密码">
+                <div class="error-message" id="register-error"></div>
+                <div class="success-message" id="register-success"></div>
+            </div>
+            <button class="btn" id="register-btn">注册</button>
+            <div class="toggle-form">
+                <span>已有账号？</span>
+                <a id="show-login">立即登录</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Firebase 配置 -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // 测试Firebase连接
+        function testFirebaseConnection() {
+            try {
+                // 尝试连接到Firebase数据库
+                const testRef = firebase.database().ref('.info/connected');
+                testRef.on('value', (snap) => {
+                    if (snap.val() === true) {
+                        console.log('已连接到Firebase数据库');
+                    } else {
+                        console.log('未连接到Firebase数据库');
+                    }
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Firebase连接测试失败:', error);
+                return false;
+            }
+        }
+        
+        // 检查Firebase是否正确初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                // 检查Firebase Auth是否可用
+                if (firebase.auth) {
+                    console.log('Firebase Auth 已成功初始化');
+                    
+                    // 测试Firebase连接
+                    testFirebaseConnection();
+                } else {
+                    console.error('Firebase Auth 未初始化');
+                }
+            } catch (error) {
+                console.error('Firebase 初始化错误:', error);
+            }
+            
+            // 检查用户是否已登录
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    // 用户已登录，重定向到主页
+                    window.location.href = 'index.html';
+                }
+            });
+        });
+        
+        // DOM 元素
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const showRegisterBtn = document.getElementById('show-register');
+        const showLoginBtn = document.getElementById('show-login');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const registerEmail = document.getElementById('register-email');
+        const registerPassword = document.getElementById('register-password');
+        const registerConfirmPassword = document.getElementById('register-confirm-password');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+        const registerSuccess = document.getElementById('register-success');
+        
+        // 切换表单显示
+        showRegisterBtn.addEventListener('click', () => {
+            loginForm.classList.remove('active');
+            registerForm.classList.add('active');
+            loginError.textContent = '';
+        });
+        
+        showLoginBtn.addEventListener('click', () => {
+            registerForm.classList.remove('active');
+            loginForm.classList.add('active');
+            registerError.textContent = '';
+            registerSuccess.textContent = '';
+        });
+        
+        // 登录功能
+        loginBtn.addEventListener('click', () => {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+            
+            if (!email || !password) {
+                loginError.textContent = '请输入邮箱和密码';
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // 登录成功，重定向到主页
+                    window.location.href = 'index.html';
+                })
+                .catch((error) => {
+                    // 登录失败，显示错误信息
+                    console.error('登录失败:', error);
+                    
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        loginError.textContent = '邮箱或密码错误';
+                    } else if (error.code === 'auth/invalid-email') {
+                        loginError.textContent = '邮箱格式不正确';
+                    } else {
+                        loginError.textContent = '登录失败，请重试';
+                    }
+                    
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '登录';
+                });
+        });
+        
+        // 注册功能
+        registerBtn.addEventListener('click', () => {
+            const email = registerEmail.value.trim();
+            const password = registerPassword.value;
+            const confirmPassword = registerConfirmPassword.value;
+            
+            // 清除之前的错误和成功信息
+            registerError.textContent = '';
+            registerSuccess.textContent = '';
+            
+            // 验证输入
+            if (!email) {
+                registerError.textContent = '请输入邮箱';
+                return;
+            }
+            
+            if (!password) {
+                registerError.textContent = '请输入密码';
+                return;
+            }
+            
+            if (password.length < 6) {
+                registerError.textContent = '密码长度至少为6位';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                registerError.textContent = '两次输入的密码不一致';
+                return;
+            }
+            
+            registerBtn.disabled = true;
+            registerBtn.textContent = '注册中...';
+            
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // 注册成功
+                    registerSuccess.textContent = '注册成功！请登录';
+                    registerEmail.value = '';
+                    registerPassword.value = '';
+                    registerConfirmPassword.value = '';
+                    
+                    // 3秒后自动切换到登录表单
+                    setTimeout(() => {
+                        registerForm.classList.remove('active');
+                        loginForm.classList.add('active');
+                        loginEmail.value = email;
+                    }, 3000);
+                    
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = '注册';
+                })
+                .catch((error) => {
+                    // 注册失败，显示错误信息
+                    console.error('注册失败:', error);
+                    
+                    // 显示详细的错误信息，包括错误代码
+                    registerError.textContent = `注册失败: ${error.message} (错误代码: ${error.code})`;
+                    
+                    // 根据错误代码显示更友好的错误信息
+                    if (error.code === 'auth/email-already-in-use') {
+                        registerError.textContent = '该邮箱已被注册';
+                    } else if (error.code === 'auth/invalid-email') {
+                        registerError.textContent = '邮箱格式不正确';
+                    } else if (error.code === 'auth/weak-password') {
+                        registerError.textContent = '密码强度太弱';
+                    } else if (error.code === 'auth/operation-not-allowed') {
+                        registerError.textContent = '此登录方式未启用，请联系管理员';
+                    } else if (error.code === 'auth/network-request-failed') {
+                        registerError.textContent = '网络连接失败，请检查您的网络';
+                    }
+                    
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = '注册';
+                });
+        });
+    </script>
+</body>
+</html> 

@@ -1,15 +1,40 @@
-# Forget Me Not - 笔记应用
+# Forget Me Not - 高效任务与笔记管理应用
 
-一个简单而强大的笔记应用，使用Firebase Realtime Database存储数据。这个应用允许你创建、读取、编辑和删除笔记。
+一个功能强大的任务和笔记管理应用，使用Firebase Realtime Database存储数据，帮助您更有效地规划和跟踪工作与生活中的各项任务。
 
-## 功能
+## 核心功能
 
-- 创建新笔记
-- 查看所有笔记列表
-- 编辑现有笔记
-- 删除笔记
-- 实时数据存储与同步
-- 响应式设计，适配移动设备
+- **时间四象限管理**：基于紧急性和重要性分类任务
+- **项目详情管理**：创建和编辑详细的项目内容
+- **富文本编辑器**：支持格式化文本、列表、链接等
+- **进度追踪**：通过进度条和图表可视化项目完成情况
+- **提醒系统**：设置项目提醒，支持不同重复频率
+- **语音输入**：支持中英文混合语音识别
+- **数据实时同步**：所有设备上的数据实时更新
+- **用户认证**：安全的用户登录和数据隔离
+- **响应式设计**：适配各种屏幕尺寸的设备
+
+## 最新特性
+
+### 项目详情页面
+- 详细的项目信息查看和编辑界面
+- 使用Quill.js实现强大的富文本编辑功能
+- 项目进度管理和历史记录跟踪
+
+### 语音识别功能
+- 支持中英文混合语音输入
+- 可随时切换中英文识别模式以获得最佳识别效果
+- 友好的用户反馈和错误提示
+
+### 提醒管理
+- 灵活设置提醒时间和重复频率
+- 多种提醒音效选择
+- 直观的日期选择界面
+
+### 进度追踪
+- 使用Chart.js可视化项目进度历史
+- 自动记录进度变化时间点
+- 直观展示项目发展趋势
 
 ## 设置指南
 
@@ -18,24 +43,30 @@
 1. 访问 [Firebase控制台](https://console.firebase.google.com/)
 2. 创建一个新项目
 3. 在项目中添加一个Web应用
-4. 启用Realtime Database（在"构建"菜单下）
-5. 在数据库规则中设置读写权限（开发阶段可以设置为true）:
+4. 启用以下服务：
+   - Realtime Database（在"构建"菜单下）
+   - Authentication（开启电子邮件/密码登录方式）
+   - Hosting（如果需要部署）
+5. 在数据库规则中设置读写权限（生产环境推荐基于认证的权限）:
    ```json
    {
      "rules": {
-       ".read": true,
-       ".write": true
+       "users": {
+         "$uid": {
+           ".read": "$uid === auth.uid",
+           ".write": "$uid === auth.uid"
+         }
+       }
      }
    }
    ```
 
 ### 2. 配置Firebase
 
-为了保护你的Firebase配置信息，我们使用单独的配置文件：
+创建配置文件：
 
-1. 复制`firebase-config.example.js`为`firebase-config.js`
-2. 在`firebase-config.js`中填入你的Firebase配置信息
-3. 确保`.gitignore`文件中包含`firebase-config.js`，这样它不会被提交到Git
+1. 创建`firebase-config.js`文件
+2. 在文件中填入你的Firebase配置信息
 
 ```javascript
 // Firebase 配置
@@ -48,37 +79,29 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
+
+// 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+
+// 获取数据库引用
+const database = firebase.database();
+
+// 获取用户特定的项目引用
+function userProjectsRef() {
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    console.error('用户未登录');
+    return null;
+  }
+  return database.ref(`users/${user.uid}/projects`);
+}
+
+// 其他帮助函数...
 ```
 
-### 3. 安装依赖
+### 3. 本地运行
 
-```bash
-npm install
-```
-
-### 4. 开发模式运行
-
-```bash
-npm run dev
-```
-
-### 5. 构建生产版本
-
-```bash
-npm run build
-```
-
-## 部署到GitHub Pages
-
-对于GitHub Pages部署，你需要安全地处理Firebase配置：
-
-1. 确保不要提交`firebase-config.js`文件
-2. 考虑使用环境变量或其他安全方式处理配置
-3. 或者使用专门的部署服务如Vercel、Netlify等，它们支持环境变量设置
-
-## 本地开发
-
-由于浏览器的安全限制，直接在本地文件系统打开HTML文件可能无法正常工作。建议使用本地服务器：
+由于使用了模块和API调用，需要通过HTTP服务器运行：
 
 ```bash
 # 使用Python启动简单的HTTP服务器
@@ -90,44 +113,89 @@ npx http-server
 
 然后在浏览器中访问 `http://localhost:8000` 或服务器提供的URL。
 
-## 注意事项
+### 4. 部署到Firebase Hosting
 
-- 这个应用使用的是Firebase免费计划，有一定的读写限制
-- 在生产环境中，应该设置更严格的数据库安全规则
-- 考虑添加用户认证以保护你的笔记数据
-- 不要将包含敏感信息的`firebase-config.js`文件提交到公开仓库
+```bash
+# 安装Firebase CLI
+npm install -g firebase-tools
 
-## 安全注意事项
+# 登录到Firebase
+firebase login
 
-### 关于Firebase客户端SDK的安全性
+# 初始化Firebase项目
+firebase init
 
-Firebase的Web客户端SDK配置（apiKey等）本身并不是高度敏感的秘密。Firebase设计时考虑了这些信息会在客户端公开的情况：
+# 部署应用
+firebase deploy
+```
 
-1. **apiKey**: 这不是一个可以完全访问你的Firebase项目的密钥。它主要用于项目识别和API请求限流。
-2. **安全规则**: Firebase的真正安全保障来自于你在Firebase控制台中设置的安全规则。
+## 开发指南
 
-然而，为了更好的安全实践，我们仍然建议：
+### 项目结构
 
-1. 设置严格的Firebase安全规则，限制数据访问
-2. 使用Firebase身份验证来控制用户访问
-3. 在生产环境中，考虑使用环境变量或服务器端代理
+```
+forget-me-not/
+├── index.html             # 应用入口页面
+├── login.html             # 用户登录页面
+├── time-quadrant.html     # 时间四象限页面
+├── project-detail.html    # 项目详情页面
+├── firebase-config.js     # Firebase配置
+├── css/                   # 样式文件
+├── js/                    # JavaScript文件
+└── README.md              # 项目说明文档
+```
 
-### 设置更严格的安全规则
+### 关键技术
 
-在Firebase控制台中，你可以设置更严格的安全规则，例如：
+- **Firebase**：用于数据存储、用户认证和托管
+- **Chart.js**：数据可视化库，用于进度图表
+- **Quill.js**：富文本编辑器
+- **Font Awesome**：提供图标支持
+- **Web Speech API**：实现语音识别功能
+
+## 配置说明
+
+### firebase.json
 
 ```json
 {
-  "rules": {
-    "notes": {
-      // 只有经过身份验证的用户可以读取笔记
-      ".read": "auth != null",
-      // 用户只能读写自己的笔记
-      "$noteId": {
-        ".read": "auth != null && data.child('userId').val() === auth.uid",
-        ".write": "auth != null && (!data.exists() || data.child('userId').val() === auth.uid)"
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
-    }
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
   }
 }
-``` 
+```
+
+## 安全最佳实践
+
+1. **使用Firebase身份验证**：确保所有数据访问需要身份验证
+2. **数据库安全规则**：实施严格的安全规则，基于用户ID限制数据访问
+3. **客户端数据验证**：在保存到数据库前验证所有用户输入
+4. **使用HTTPS**：确保所有数据传输通过HTTPS进行
+5. **错误处理**：实现全面的错误处理以提高稳定性
+
+## 疑难解答
+
+1. **认证问题**：如遇认证失败，请确保Firebase配置正确，并检查浏览器控制台
+2. **数据加载问题**：检查数据库规则是否允许您的用户读取数据
+3. **部署问题**：确保所有必要文件都包含在部署中，特别是配置文件
+
+## 贡献指南
+
+欢迎贡献代码、报告问题或提出新功能建议。请通过GitHub Issues系统提交反馈。
+
+## 许可证
+
+本项目采用MIT许可证。详情请参阅LICENSE文件。 

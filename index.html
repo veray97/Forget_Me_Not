@@ -1,143 +1,219 @@
 <!DOCTYPE html>
 <html lang="zh">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forget Me Not - 主页</title>
+    <title>Forget Me Not - 笔记应用</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+      }
+      
+      h1 {
+        color: #2c3e50;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+      
+      .subtitle {
+        color: #7f8c8d;
+        font-size: 1.2em;
+        margin-bottom: 30px;
+      }
+      
+      .features-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-top: 40px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      
+      .feature-card {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 250px;
+      }
+      
+      .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      }
+      
+      .feature-icon {
+        font-size: 3em;
+        margin-bottom: 20px;
+      }
+      
+      .feature-title {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #2c3e50;
+      }
+      
+      .feature-description {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+      }
+      
+      .feature-1 .feature-icon {
+        color: #3498db;
+      }
+      
+      .feature-2 .feature-icon {
+        color: #e74c3c;
+      }
+      
+      .feature-3 .feature-icon {
+        color: #2ecc71;
+      }
+      
+      .feature-4 .feature-icon {
+        color: #f39c12;
+      }
+      
+      footer {
+        text-align: center;
+        margin-top: 60px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        color: #7f8c8d;
+      }
+      
+      .user-info {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .user-email {
+        font-size: 14px;
+        color: #7f8c8d;
+      }
+      
+      .logout-btn {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+      }
+      
+      .logout-btn:hover {
+        background-color: #c0392b;
+      }
+      
+      @media (max-width: 768px) {
+        .features-container {
+          grid-template-columns: 1fr;
         }
         
-        header {
-            text-align: center;
-            margin-bottom: 50px;
+        .user-info {
+          position: static;
+          justify-content: center;
+          margin-top: 20px;
         }
-        
-        h1 {
-            color: #2c3e50;
-        }
-        
-        .modules-container {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-top: 50px;
-        }
-        
-        .module {
-            flex: 1;
-            max-width: 400px;
-            height: 300px;
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .module:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-        
-        .module h2 {
-            font-size: 28px;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-        
-        .module p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        
-        .module-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-            color: #3498db;
-        }
-        
-        .project-library {
-            border-top: 5px solid #3498db;
-        }
-        
-        .private-events {
-            border-top: 5px solid #e74c3c;
-        }
-        
-        .private-events .module-icon {
-            color: #e74c3c;
-        }
-        
-        @media (max-width: 768px) {
-            .modules-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .module {
-                width: 100%;
-                margin-bottom: 30px;
-            }
-        }
+      }
     </style>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
+  </head>
+  <body>
     <header>
-        <h1>Forget Me Not</h1>
-        <p>记录你的想法，永不遗忘</p>
+      <h1>Forget Me Not</h1>
+      <div class="subtitle">一个简单而强大的笔记与时间管理应用</div>
+      <div class="user-info">
+        <span class="user-email" id="user-email"></span>
+        <button class="logout-btn" id="logout-btn">退出登录</button>
+      </div>
     </header>
     
-    <div class="modules-container">
-        <div class="module project-library" id="project-library">
-            <div class="module-icon">
-                <i class="fas fa-book"></i>
-            </div>
-            <h2>Project Library</h2>
-            <p>管理和记录您的项目笔记</p>
+    <div class="features-container">
+      <div class="feature-card feature-1" onclick="window.location.href='time-quadrant.html'">
+        <div class="feature-icon">
+          <i class="fas fa-th-large"></i>
         </div>
-        
-        <div class="module private-events" id="private-events">
-            <div class="module-icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <h2>Private Events</h2>
-            <p>记录您的私人事件和日程</p>
+        <div class="feature-title">时间管理象限</div>
+        <div class="feature-description">使用艾森豪威尔矩阵管理任务优先级，提高工作效率</div>
+      </div>
+      
+      <div class="feature-card feature-2" onclick="window.location.href='private-events.html'">
+        <div class="feature-icon">
+          <i class="fas fa-calendar-alt"></i>
         </div>
+        <div class="feature-title">私人事件</div>
+        <div class="feature-description">记录和管理您的个人事件和约会</div>
+      </div>
     </div>
+    
+    <footer>
+      <p>Forget Me Not &copy; 2023 | 一个简单而强大的笔记应用</p>
+    </footer>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <!-- Firebase 配置 -->
     <script src="firebase-config.js"></script>
     
-    <!-- 主页逻辑 -->
     <script>
-        // 模块点击事件
-        document.getElementById('project-library').addEventListener('click', () => {
-            window.location.href = 'time-quadrant.html';
+      // 检查用户是否已登录
+      document.addEventListener('DOMContentLoaded', () => {
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            // 用户已登录，显示用户信息
+            document.getElementById('user-email').textContent = user.email;
+          } else {
+            // 用户未登录，重定向到登录页面
+            window.location.href = 'login.html';
+          }
         });
         
-        document.getElementById('private-events').addEventListener('click', () => {
-            window.location.href = 'private-events.html';
+        // 退出登录
+        document.getElementById('logout-btn').addEventListener('click', () => {
+          firebase.auth().signOut()
+            .then(() => {
+              // 退出成功，重定向到登录页面
+              window.location.href = 'login.html';
+            })
+            .catch((error) => {
+              console.error('退出登录失败:', error);
+              alert('退出登录失败，请重试');
+            });
         });
+      });
     </script>
-</body>
-</html> 
+  </body>
+</html>

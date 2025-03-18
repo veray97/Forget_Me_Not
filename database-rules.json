@@ -1,0 +1,25 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "projects": {
+          ".indexOn": ["timestamp", "quadrant"]
+        },
+        "notes": {
+          ".indexOn": ["timestamp"]
+        },
+        "events": {
+          ".indexOn": ["date", "timestamp"]
+        }
+      }
+    },
+    "public": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}
