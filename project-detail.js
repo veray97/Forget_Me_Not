@@ -700,6 +700,7 @@ async function showInputDialog() {
     
     // 提交按钮处理函数
     async function handleDialogSubmit() {
+        console.log("提交按钮点击事件已触发");
         const content = dialogInput.value.trim();
         
         if (!content) {
@@ -713,8 +714,16 @@ async function showInputDialog() {
         
         try {
             // 使用 ChatGPT API 解析项目详情
+            console.log("开始调用 parseProjectDetails 函数");
             const parsedInfo = await parseProjectDetails(content);
             console.log('解析结果:', parsedInfo);
+            
+            if (!parsedInfo) {
+                console.warn("解析结果为空，使用默认值");
+                // 使用默认值
+                handleWithDefaultValues(content);
+                return;
+            }
             
             // 关闭弹窗
             inputDialog.style.display = 'none';
@@ -765,17 +774,56 @@ async function showInputDialog() {
             // 恢复按钮状态
             dialogSubmit.disabled = false;
             dialogSubmit.innerHTML = '添加新项目';
+            
+            // 如果发生错误，使用默认值继续
+            handleWithDefaultValues(content);
         }
+    }
+    
+    // 当解析失败时，使用默认值处理内容
+    function handleWithDefaultValues(content) {
+        console.log("使用默认值处理内容");
+        // 关闭弹窗
+        inputDialog.style.display = 'none';
+        
+        // 设置项目内容
+        quill.setText(content);
+        
+        // 使用内容前15个字符作为标题
+        const autoTitle = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+        projectTitle.textContent = autoTitle;
+        
+        // 设置默认进度为0
+        progressSlider.value = 0;
+        progressValue.textContent = '0%';
+        
+        // 初始化图表
+        initChart();
+        
+        // 自动保存项目
+        saveProject();
     }
 }
 
 // 初始化语音输入和弹窗对话框
 function initInputDialog() {
+    console.log("初始化语音输入和对话框");
     const voiceBtn = document.getElementById('voice-btn');
     const dialogInput = document.getElementById('dialog-input');
     
+    if (!voiceBtn) {
+        console.error("未找到语音按钮元素");
+        return;
+    }
+    
+    if (!dialogInput) {
+        console.error("未找到对话框输入元素");
+        return;
+    }
+    
     // 检查浏览器是否支持语音识别
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        console.log("浏览器支持语音识别，设置语音功能");
         setupSpeechRecognition(voiceBtn, dialogInput);
     } else {
         // 浏览器不支持语音识别
@@ -987,14 +1035,17 @@ function debugFirebaseConnection() {
 
 // 添加解析项目详情的函数
 async function parseProjectDetails(content) {
+    console.log("开始解析项目详情:", content.substring(0, 30) + "...");
     try {
         // 使用 api-keys.js 中的 API 密钥
         const apiKey = OPENAI_API.KEY;
         if (!apiKey || apiKey === 'your-openai-api-key-here') {
+            console.error("API 密钥未设置或使用了默认值");
             alert('请先在 api-keys.js 文件中设置您的 OpenAI API 密钥');
             return null;
         }
-
+        
+        console.log("准备发送 API 请求");
         const response = await fetch(OPENAI_API.URL, {
             method: 'POST',
             headers: {
@@ -1030,10 +1081,13 @@ async function parseProjectDetails(content) {
         });
 
         if (!response.ok) {
+            console.error(`API 请求失败: 状态码 ${response.status}`, await response.text());
             throw new Error(`API请求失败：${response.statusText}`);
         }
 
+        console.log("API 请求成功，处理响应数据");
         const data = await response.json();
+        console.log("API 响应数据:", data);
         try {
             // 尝试将返回的内容解析为 JSON
             const parsedResult = JSON.parse(data.choices[0].message.content.trim());
@@ -1044,36 +1098,115 @@ async function parseProjectDetails(content) {
             console.log('原始返回内容:', data.choices[0].message.content);
             
             // 尝试从文本中提取信息作为备选方案
+            console.log('使用备选方法提取信息');
             return extractFallbackInfo(content);
         }
     } catch (error) {
         console.error('解析项目详情失败:', error);
         // 直接使用备选方案
+        console.log('发生错误，使用备选方法提取信息');
         return extractFallbackInfo(content);
     }
 }
 
 // 备选的信息提取方法，当API解析失败时使用
 function extractFallbackInfo(content) {
-    // 简单的标题提取：使用内容的前15个字符
-    const title = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+    console.log("执行备选信息提取方法");
+    
+    // 简单的标题提取：查找第一行或首句作为标题
+    let title = '';
+    const firstLineMatch = content.match(/^(.+?)[\n\r]/);
+    const firstSentenceMatch = content.match(/^(.+?)[。.!！?？]/);
+    
+    if (firstLineMatch) {
+        title = firstLineMatch[1].trim();
+    } else if (firstSentenceMatch) {
+        title = firstSentenceMatch[1].trim();
+    } else {
+        // 如果没有找到换行或句号，使用内容的前15个字符
+        title = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+    }
+    
+    // 标题太长时截断
+    if (title.length > 30) {
+        title = title.substring(0, 30) + '...';
+    }
     
     // 尝试从文本中匹配进度
     let progress = 0;
-    const progressMatches = content.match(/进度[：:]\s*(\d+)%|进度[为是]\s*(\d+)%|完成[了]?\s*(\d+)%|(\d+)%\s*完成/);
-    if (progressMatches) {
-        // 查找第一个非空的捕获组
-        for (let i = 1; i < progressMatches.length; i++) {
-            if (progressMatches[i]) {
-                progress = parseInt(progressMatches[i]);
+    const progressPatterns = [
+        /进度[：:]\s*(\d+)%/,
+        /进度[为是]\s*(\d+)%/,
+        /完成[了]?\s*(\d+)%/,
+        /(\d+)%\s*完成/,
+        /已完成\s*(\d+)%/,
+        /共完成\s*(\d+)%/
+    ];
+    
+    // 遍历所有模式尝试匹配
+    for (const pattern of progressPatterns) {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+            progress = parseInt(match[1]);
+            if (progress >= 0 && progress <= 100) {
+                break;  // 找到有效进度后停止
+            }
+        }
+    }
+    
+    // 尝试提取提醒时间和频率
+    let reminderTime = null;
+    let reminderFrequency = null;
+    
+    // 匹配提醒时间，如"上午10点"、"下午3点"、"晚上8点"、"10:30"等格式
+    const timePatterns = [
+        /([上中下]午|早上|晚上)?(\d{1,2})[点:](\d{0,2})/,
+        /(\d{1,2})[点:](\d{0,2})/
+    ];
+    
+    for (const pattern of timePatterns) {
+        const match = content.match(pattern);
+        if (match) {
+            let hours = parseInt(match[2]);
+            const minutes = match[3] ? parseInt(match[3]) : 0;
+            
+            // 调整时间
+            if (match[1] === '下午' || match[1] === '晚上') {
+                if (hours < 12) hours += 12;
+            } else if (match[1] === '上午' && hours === 12) {
+                hours = 0;
+            }
+            
+            if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+                reminderTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 break;
             }
         }
     }
     
-    // 返回提取的信息
-    return {
+    // 匹配提醒频率，如"每天"、"每周"、"每月"等
+    if (content.includes('每天') || content.includes('每日')) {
+        reminderFrequency = 'daily';
+    } else if (content.includes('每周') || content.match(/周[一二三四五六日]/)) {
+        reminderFrequency = 'weekly';
+    } else if (content.includes('每月')) {
+        reminderFrequency = 'monthly';
+    }
+    
+    // 构造并返回提取的信息
+    const result = {
         title: title,
         progress: progress
     };
+    
+    if (reminderTime) {
+        result.reminderTime = reminderTime;
+    }
+    
+    if (reminderFrequency) {
+        result.reminderFrequency = reminderFrequency;
+    }
+    
+    console.log("备选方法提取结果:", result);
+    return result;
 }
