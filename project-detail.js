@@ -657,19 +657,116 @@ function restoreSaveButton() {
     saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
 }
 
-// 修改 showInputDialog 函数
+// 显示输入对话框
 async function showInputDialog() {
-    // 尝试使用两种可能的ID获取对话框元素
-    let inputDialog = document.getElementById('inputDialog');
+    // 获取对话框元素
+    const inputDialog = document.getElementById('input-dialog');
     if (!inputDialog) {
-        inputDialog = document.getElementById('input-dialog');
-    }
-    
-    if (!inputDialog) {
-        console.error('找不到输入对话框元素，请检查HTML中的ID是否为inputDialog或input-dialog');
+        console.error('对话框元素未找到，无法显示对话框');
         return;
     }
-    inputDialog.style.display = 'flex'; // 使用flex以保持对话框居中
+    
+    // 显示弹窗
+    inputDialog.style.display = 'flex';
+    
+    // 清空输入框
+    const dialogInput = document.getElementById('dialog-input');
+    if (dialogInput) {
+        dialogInput.value = '';
+    }
+    
+    // 移除旧的事件监听器（避免重复绑定）
+    const dialogCancel = document.getElementById('dialog-cancel');
+    const dialogSubmit = document.getElementById('dialog-submit');
+    
+    if (dialogCancel) dialogCancel.onclick = null;
+    if (dialogSubmit) dialogSubmit.onclick = null;
+    
+    // 添加新的事件监听器
+    if (dialogCancel) {
+        dialogCancel.onclick = handleDialogCancel;
+    }
+    
+    if (dialogSubmit) {
+        dialogSubmit.onclick = handleDialogSubmit;
+    }
+    
+    // 取消按钮处理函数
+    function handleDialogCancel() {
+        inputDialog.style.display = 'none';
+        // 重定向回时间象限页面
+        window.location.href = '/time-quadrant.html';
+    }
+    
+    // 提交按钮处理函数
+    async function handleDialogSubmit() {
+        const content = dialogInput.value.trim();
+        
+        if (!content) {
+            alert('请输入项目详情');
+            return;
+        }
+        
+        // 显示处理中状态
+        dialogSubmit.disabled = true;
+        dialogSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+        
+        try {
+            // 使用 ChatGPT API 解析项目详情
+            const parsedInfo = await parseProjectDetails(content);
+            console.log('解析结果:', parsedInfo);
+            
+            // 关闭弹窗
+            inputDialog.style.display = 'none';
+            
+            // 设置项目内容
+            quill.setText(content);
+            
+            // 设置项目标题（如果 API 解析出了标题，否则自动生成一个）
+            if (parsedInfo && parsedInfo.title) {
+                projectTitle.textContent = parsedInfo.title;
+            } else {
+                // 如果没有标题，使用内容的前15个字符作为标题
+                const autoTitle = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+                projectTitle.textContent = autoTitle;
+            }
+            
+            // 设置进度（如果 API 解析出了进度，否则默认为0）
+            const progress = parsedInfo && parsedInfo.progress !== undefined ? parsedInfo.progress : 0;
+            progressSlider.value = progress;
+            progressValue.textContent = `${progress}%`;
+            
+            // 设置提醒（如果 API 解析出了提醒设置）
+            if (parsedInfo && parsedInfo.reminderTime) {
+                reminderToggle.checked = true;
+                reminderSettings.style.display = 'block';
+                
+                // 设置提醒时间
+                const [hours, minutes] = parsedInfo.reminderTime.split(':');
+                const now = new Date();
+                now.setHours(hours, minutes, 0);
+                reminderDate.value = now.toISOString().slice(0, 16);
+                
+                // 设置提醒频率
+                if (parsedInfo.reminderFrequency) {
+                    reminderRepeat.value = parsedInfo.reminderFrequency;
+                }
+            }
+            
+            // 初始化图表
+            initChart();
+            
+            // 自动保存项目
+            saveProject();
+        } catch (error) {
+            console.error('处理项目详情失败:', error);
+            alert('处理失败: ' + error.message);
+            
+            // 恢复按钮状态
+            dialogSubmit.disabled = false;
+            dialogSubmit.innerHTML = '添加新项目';
+        }
+    }
 }
 
 // 初始化语音输入和弹窗对话框
@@ -910,21 +1007,25 @@ async function parseProjectDetails(content) {
                     {
                         role: "system",
                         content: "你是一个项目信息解析助手。请从用户输入的项目详情中提取以下信息：\n" +
-                                "1. 项目进度（百分比）\n" +
-                                "2. 提醒时间（如果有）\n" +
-                                "3. 提醒频率（如果有）\n" +
+                                "1. 项目标题（通常在开头，或者根据内容主题推断）\n" +
+                                "2. 项目进度（百分比，如果未提及则不返回）\n" +
+                                "3. 提醒时间（如果有，返回HH:mm格式）\n" +
+                                "4. 提醒频率（每天，每周，每月等）\n" +
                                 "请以JSON格式返回，格式如下：\n" +
                                 "{\n" +
+                                "  \"title\": \"项目标题\",\n" +
                                 "  \"progress\": 数字,\n" +
                                 "  \"reminderTime\": \"HH:mm\",\n" +
                                 "  \"reminderFrequency\": \"daily/weekly/monthly\"\n" +
-                                "}"
+                                "}\n" +
+                                "如果信息未提及，对应字段可以省略。对于提醒频率，请将中文描述（每天、每周、每月）转换为英文格式（daily、weekly、monthly）。"
                     },
                     {
                         role: "user",
                         content: content
                     }
-                ]
+                ],
+                temperature: 0.3
             })
         });
 
@@ -935,15 +1036,44 @@ async function parseProjectDetails(content) {
         const data = await response.json();
         try {
             // 尝试将返回的内容解析为 JSON
-            return JSON.parse(data.choices[0].message.content.trim());
+            const parsedResult = JSON.parse(data.choices[0].message.content.trim());
+            console.log("API解析结果:", parsedResult);
+            return parsedResult;
         } catch (jsonError) {
             console.error('无法解析返回的 JSON:', jsonError);
             console.log('原始返回内容:', data.choices[0].message.content);
-            return null;
+            
+            // 尝试从文本中提取信息作为备选方案
+            return extractFallbackInfo(content);
         }
     } catch (error) {
         console.error('解析项目详情失败:', error);
-        alert('解析项目详情失败: ' + error.message);
-        return null;
+        // 直接使用备选方案
+        return extractFallbackInfo(content);
     }
+}
+
+// 备选的信息提取方法，当API解析失败时使用
+function extractFallbackInfo(content) {
+    // 简单的标题提取：使用内容的前15个字符
+    const title = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+    
+    // 尝试从文本中匹配进度
+    let progress = 0;
+    const progressMatches = content.match(/进度[：:]\s*(\d+)%|进度[为是]\s*(\d+)%|完成[了]?\s*(\d+)%|(\d+)%\s*完成/);
+    if (progressMatches) {
+        // 查找第一个非空的捕获组
+        for (let i = 1; i < progressMatches.length; i++) {
+            if (progressMatches[i]) {
+                progress = parseInt(progressMatches[i]);
+                break;
+            }
+        }
+    }
+    
+    // 返回提取的信息
+    return {
+        title: title,
+        progress: progress
+    };
 }

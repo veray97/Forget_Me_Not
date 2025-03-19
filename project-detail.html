@@ -17,6 +17,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="firebase-config.js"></script>
     
+    <!-- API 密钥文件 (不会上传到 GitHub) -->
+    <script src="api-keys.js"></script>
+    
     <!-- 错误处理脚本 -->
     <script>
     // 全局错误处理
@@ -470,12 +473,12 @@
     <!-- 弹窗对话框 -->
     <div class="input-dialog" id="input-dialog">
         <div class="dialog-content">
-            <div class="dialog-title">请输入项目标题和详情</div>
-            <div style="margin-bottom: 15px;">
-                <label for="dialog-title" style="display: block; margin-bottom: 5px; font-weight: bold;">项目标题</label>
-                <input type="text" id="dialog-title" placeholder="请输入项目标题" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-            </div>
-            <textarea class="dialog-input" id="dialog-input" placeholder="在这里输入项目详情..."></textarea>
+            <div class="dialog-title">请输入项目详情</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                请输入项目内容，系统将自动识别项目标题、进度和提醒设置。<br>
+                例如：「完成数据库设计，进度已完成60%，每周三上午10点提醒我」
+            </p>
+            <textarea class="dialog-input" id="dialog-input" placeholder="在这里输入或说出项目详情，系统将自动分析..."></textarea>
             <div class="dialog-buttons">
                 <button class="dialog-btn dialog-cancel" id="dialog-cancel">取消</button>
                 <button class="dialog-btn dialog-submit" id="dialog-submit">添加新项目</button>
@@ -485,9 +488,6 @@
             </button>
         </div>
     </div>
-    
-    <!-- API 密钥文件 (不会上传到 GitHub) -->
-    <script src="api-keys.js"></script>
     
     <!-- 项目详情页JavaScript -->
     <script src="project-detail.js"></script>
