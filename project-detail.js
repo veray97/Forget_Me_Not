@@ -657,68 +657,258 @@ function restoreSaveButton() {
     saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
 }
 
-// 显示弹窗对话框
-function showInputDialog() {
-    // 获取对话框元素
-    const inputDialog = document.getElementById('input-dialog');
-    const dialogTitle = document.getElementById('dialog-title');
-    const dialogInput = document.getElementById('dialog-input');
-    const dialogCancel = document.getElementById('dialog-cancel');
-    const dialogSubmit = document.getElementById('dialog-submit');
+// 添加解析项目详情的函数
+async function parseProjectDetails(content) {
+    try {
+        // 从Firebase获取API密钥
+        const apiKey = await getOpenAIApiKey();
+        if (!apiKey) {
+            alert('未找到OpenAI API密钥，请先在Firebase数据库中设置或联系管理员。');
+            return null;
+        }
+
+        const response = await fetch(OPENAI_CONFIG.API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: OPENAI_CONFIG.MODEL,
+                messages: [
+                    {
+                        role: "system",
+                        content: "你是一个项目信息解析助手。请从用户输入的项目详情中提取以下信息：\n" +
+                                "1. 项目进度（百分比）\n" +
+                                "2. 提醒时间（如果有）\n" +
+                                "3. 提醒频率（如果有）\n" +
+                                "请以JSON格式返回，格式如下：\n" +
+                                "{\n" +
+                                "  \"progress\": 数字,\n" +
+                                "  \"reminderTime\": \"HH:mm\",\n" +
+                                "  \"reminderFrequency\": \"daily/weekly/monthly\"\n" +
+                                "}"
+                    },
+                    {
+                        role: "user",
+                        content: content
+                    }
+                ],
+                temperature: 0.3
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('API 请求失败');
+        }
+
+        const data = await response.json();
+        const parsedContent = JSON.parse(data.choices[0].message.content);
+        return parsedContent;
+    } catch (error) {
+        console.error('解析项目详情失败:', error);
+        return null;
+    }
+}
+
+// 修改 showInputDialog 函数
+async function showInputDialog() {
+    // 尝试使用两种可能的ID获取对话框元素
+    let inputDialog = document.getElementById('inputDialog');
+    if (!inputDialog) {
+        inputDialog = document.getElementById('input-dialog');
+    }
     
     if (!inputDialog) {
-        console.error('对话框元素未找到，无法显示对话框');
+        console.error('找不到输入对话框元素，请检查HTML中的ID是否为inputDialog或input-dialog');
         return;
     }
-    
-    // 显示弹窗
-    inputDialog.style.display = 'flex';
-     
-    // 移除旧的事件监听器（避免重复绑定）
-    dialogCancel.removeEventListener('click', handleDialogCancel);
-    dialogSubmit.removeEventListener('click', handleDialogSubmit);
-    
-    // 添加新的事件监听器
-    dialogCancel.addEventListener('click', handleDialogCancel);
-    dialogSubmit.addEventListener('click', handleDialogSubmit);
-    
-    // 取消按钮处理函数
-    function handleDialogCancel() {
-        inputDialog.style.display = 'none';
-        // 设置默认标题和进度
-        setDefaultProjectValues();
+    inputDialog.style.display = 'flex'; // 使用flex以保持对话框居中
+
+    // 确保已有按钮不重复添加
+    const existingParseButton = document.querySelector('.parse-button');
+    if (!existingParseButton) {
+        // 添加解析按钮
+        const parseButton = document.createElement('button');
+        parseButton.textContent = '智能解析';
+        parseButton.className = 'parse-button';
+        parseButton.style.marginLeft = '10px';
+        parseButton.style.padding = '5px 10px';
+        parseButton.style.backgroundColor = '#4CAF50';
+        parseButton.style.color = 'white';
+        parseButton.style.border = 'none';
+        parseButton.style.borderRadius = '4px';
+        parseButton.style.cursor = 'pointer';
+
+        const projectContent = document.getElementById('projectContent');
+        if (projectContent) {
+            projectContent.parentNode.insertBefore(parseButton, projectContent.nextSibling);
+        
+            // 添加解析按钮的点击事件
+            parseButton.onclick = async () => {
+                const content = projectContent.value;
+                if (!content) {
+                    alert('请先输入项目详情');
+                    return;
+                }
+
+                parseButton.disabled = true;
+                parseButton.textContent = '解析中...';
+
+                try {
+                    const parsedInfo = await parseProjectDetails(content);
+                    if (parsedInfo) {
+                        // 更新进度
+                        if (parsedInfo.progress !== undefined) {
+                            const progressInput = document.getElementById('projectProgress');
+                            const progressValue = document.getElementById('progressValue');
+                            if (progressInput) {
+                                progressInput.value = parsedInfo.progress;
+                            }
+                            if (progressValue) {
+                                progressValue.textContent = `${parsedInfo.progress}%`;
+                            }
+                        }
+
+                        // 更新提醒设置
+                        if (parsedInfo.reminderTime && parsedInfo.reminderFrequency) {
+                            const reminderTimeInput = document.getElementById('reminderTime');
+                            const reminderFrequencySelect = document.getElementById('reminderFrequency');
+                            
+                            if (reminderTimeInput) {
+                                reminderTimeInput.value = parsedInfo.reminderTime;
+                            }
+                            
+                            if (reminderFrequencySelect) {
+                                reminderFrequencySelect.value = parsedInfo.reminderFrequency;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('解析失败:', error);
+                    alert('解析失败，请检查输入内容或稍后重试');
+                } finally {
+                    parseButton.disabled = false;
+                    parseButton.textContent = '智能解析';
+                }
+            };
+        }
     }
-    
-    // 提交按钮处理函数
-    function handleDialogSubmit() {
-        const title = dialogTitle.value.trim();
-        const content = dialogInput.value.trim();
-        
-        if (!title) {
-            alert('请输入项目标题');
-            return;
+
+    // 添加取消按钮事件
+    const dialogCancel = document.getElementById('dialogCancel');
+    if (dialogCancel) {
+        // 移除旧的事件监听器
+        const oldHandler = dialogCancel.onclick;
+        if (oldHandler) {
+            dialogCancel.removeEventListener('click', oldHandler);
         }
         
-        if (!content) {
-            alert('请输入项目详情');
-            return;
+        dialogCancel.onclick = () => {
+            inputDialog.style.display = 'none';
+            // 重置表单
+            const projectTitleInput = document.getElementById('projectTitle');
+            const projectContentInput = document.getElementById('projectContent');
+            const projectProgressInput = document.getElementById('projectProgress');
+            const progressValueSpan = document.getElementById('progressValue');
+            const reminderTimeInput = document.getElementById('reminderTime');
+            const reminderFrequencySelect = document.getElementById('reminderFrequency');
+            
+            if (projectTitleInput) projectTitleInput.value = '';
+            if (projectContentInput) projectContentInput.value = '';
+            if (projectProgressInput) projectProgressInput.value = '0';
+            if (progressValueSpan) progressValueSpan.textContent = '0%';
+            if (reminderTimeInput) reminderTimeInput.value = '';
+            if (reminderFrequencySelect) reminderFrequencySelect.value = 'daily';
+        };
+    }
+
+    // 添加提交按钮事件
+    const dialogSubmit = document.getElementById('dialogSubmit');
+    if (dialogSubmit) {
+        // 移除旧的事件监听器
+        const oldHandler = dialogSubmit.onclick;
+        if (oldHandler) {
+            dialogSubmit.removeEventListener('click', oldHandler);
         }
         
-        // 关闭弹窗
-        inputDialog.style.display = 'none';
-        
-        // 设置项目内容
-        quill.setText(content);
-        
-        // 设置项目标题
-        projectTitle.textContent = title;
-        
-        // 设置默认进度
-        progressSlider.value = 0;
-        progressValue.textContent = '0%';
-        
-        // 初始化图表
-        initChart();
+        dialogSubmit.onclick = () => {
+            const projectTitleInput = document.getElementById('projectTitle');
+            const projectContentInput = document.getElementById('projectContent');
+            const projectProgressInput = document.getElementById('projectProgress');
+            const reminderTimeInput = document.getElementById('reminderTime');
+            const reminderFrequencySelect = document.getElementById('reminderFrequency');
+            
+            if (!projectTitleInput || !projectContentInput) {
+                console.error('找不到项目标题或详情输入框');
+                return;
+            }
+            
+            const title = projectTitleInput.value.trim();
+            const content = projectContentInput.value.trim();
+            let progress = '0';
+            let reminderTime = '';
+            let reminderFrequency = 'daily';
+            
+            if (projectProgressInput) progress = projectProgressInput.value;
+            if (reminderTimeInput) reminderTime = reminderTimeInput.value;
+            if (reminderFrequencySelect) reminderFrequency = reminderFrequencySelect.value;
+
+            if (!title) {
+                alert('请输入项目标题');
+                return;
+            }
+
+            if (!content) {
+                alert('请输入项目详情');
+                return;
+            }
+
+            // 关闭弹窗
+            inputDialog.style.display = 'none';
+
+            // 设置项目内容
+            quill.setText(content);
+
+            // 设置项目标题
+            projectTitle.textContent = title;
+
+            // 设置进度
+            progressSlider.value = progress;
+            progressValue.textContent = `${progress}%`;
+
+            // 设置提醒
+            if (reminderTime) {
+                const reminderToggle = document.getElementById('reminder-toggle');
+                const reminderSettings = document.getElementById('reminder-settings');
+                if (reminderToggle) reminderToggle.checked = true;
+                if (reminderSettings) reminderSettings.style.display = 'block';
+                
+                const reminderDate = document.getElementById('reminder-date');
+                if (reminderDate) {
+                    const now = new Date();
+                    const [hours, minutes] = reminderTime.split(':');
+                    now.setHours(hours, minutes, 0);
+                    reminderDate.value = now.toISOString().slice(0, 16);
+                }
+                
+                const reminderRepeat = document.getElementById('reminder-repeat');
+                if (reminderRepeat) {
+                    const frequencyMap = {
+                        'daily': 'daily',
+                        'weekly': 'weekly',
+                        'monthly': 'monthly'
+                    };
+                    reminderRepeat.value = frequencyMap[reminderFrequency] || 'daily';
+                }
+            }
+
+            // 初始化图表
+            initChart();
+            
+            // 保存项目
+            saveProject();
+        };
     }
 }
 
