@@ -657,69 +657,19 @@ function restoreSaveButton() {
     saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
 }
 
-// 显示弹窗对话框
-function showInputDialog() {
-    // 获取对话框元素
-    const inputDialog = document.getElementById('input-dialog');
-    const dialogTitle = document.getElementById('dialog-title');
-    const dialogInput = document.getElementById('dialog-input');
-    const dialogCancel = document.getElementById('dialog-cancel');
-    const dialogSubmit = document.getElementById('dialog-submit');
+// 修改 showInputDialog 函数
+async function showInputDialog() {
+    // 尝试使用两种可能的ID获取对话框元素
+    let inputDialog = document.getElementById('inputDialog');
+    if (!inputDialog) {
+        inputDialog = document.getElementById('input-dialog');
+    }
     
     if (!inputDialog) {
-        console.error('对话框元素未找到，无法显示对话框');
+        console.error('找不到输入对话框元素，请检查HTML中的ID是否为inputDialog或input-dialog');
         return;
     }
-    
-    // 显示弹窗
-    inputDialog.style.display = 'flex';
-     
-    // 移除旧的事件监听器（避免重复绑定）
-    dialogCancel.removeEventListener('click', handleDialogCancel);
-    dialogSubmit.removeEventListener('click', handleDialogSubmit);
-    
-    // 添加新的事件监听器
-    dialogCancel.addEventListener('click', handleDialogCancel);
-    dialogSubmit.addEventListener('click', handleDialogSubmit);
-    
-    // 取消按钮处理函数
-    function handleDialogCancel() {
-        inputDialog.style.display = 'none';
-        // 设置默认标题和进度
-        setDefaultProjectValues();
-    }
-    
-    // 提交按钮处理函数
-    function handleDialogSubmit() {
-        const title = dialogTitle.value.trim();
-        const content = dialogInput.value.trim();
-        
-        if (!title) {
-            alert('请输入项目标题');
-            return;
-        }
-        
-        if (!content) {
-            alert('请输入项目详情');
-            return;
-        }
-        
-        // 关闭弹窗
-        inputDialog.style.display = 'none';
-        
-        // 设置项目内容
-        quill.setText(content);
-        
-        // 设置项目标题
-        projectTitle.textContent = title;
-        
-        // 设置默认进度
-        progressSlider.value = 0;
-        progressValue.textContent = '0%';
-        
-        // 初始化图表
-        initChart();
-    }
+    inputDialog.style.display = 'flex'; // 使用flex以保持对话框居中
 }
 
 // 初始化语音输入和弹窗对话框
@@ -936,4 +886,64 @@ function debugFirebaseConnection() {
     } else {
         console.error('用户未登录');
     }
-} 
+}
+
+// 添加解析项目详情的函数
+async function parseProjectDetails(content) {
+    try {
+        // 使用 api-keys.js 中的 API 密钥
+        const apiKey = OPENAI_API.KEY;
+        if (!apiKey || apiKey === 'your-openai-api-key-here') {
+            alert('请先在 api-keys.js 文件中设置您的 OpenAI API 密钥');
+            return null;
+        }
+
+        const response = await fetch(OPENAI_API.URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: OPENAI_API.MODEL,
+                messages: [
+                    {
+                        role: "system",
+                        content: "你是一个项目信息解析助手。请从用户输入的项目详情中提取以下信息：\n" +
+                                "1. 项目进度（百分比）\n" +
+                                "2. 提醒时间（如果有）\n" +
+                                "3. 提醒频率（如果有）\n" +
+                                "请以JSON格式返回，格式如下：\n" +
+                                "{\n" +
+                                "  \"progress\": 数字,\n" +
+                                "  \"reminderTime\": \"HH:mm\",\n" +
+                                "  \"reminderFrequency\": \"daily/weekly/monthly\"\n" +
+                                "}"
+                    },
+                    {
+                        role: "user",
+                        content: content
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API请求失败：${response.statusText}`);
+        }
+
+        const data = await response.json();
+        try {
+            // 尝试将返回的内容解析为 JSON
+            return JSON.parse(data.choices[0].message.content.trim());
+        } catch (jsonError) {
+            console.error('无法解析返回的 JSON:', jsonError);
+            console.log('原始返回内容:', data.choices[0].message.content);
+            return null;
+        }
+    } catch (error) {
+        console.error('解析项目详情失败:', error);
+        alert('解析项目详情失败: ' + error.message);
+        return null;
+    }
+}

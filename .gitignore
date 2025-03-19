@@ -7,6 +7,9 @@
 # Firebase配置（包含敏感信息）
 firebase-config.js
 
+# API 密钥文件
+api-keys.js
+
 # 依赖
 node_modules/
 
