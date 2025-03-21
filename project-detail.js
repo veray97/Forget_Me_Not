@@ -19,6 +19,11 @@ let backBtn, saveBtn, projectTitle;
 let reminderToggle, reminderSettings, reminderDate, reminderMusic, reminderRepeat;
 let addProgressBtn, progressEntries;
 
+// 页面状态变量
+let hasUnsavedChanges = false;
+let originalContent = null;
+let originalProgressEntries = [];
+
 // URL参数
 let projectId, quadrantParam;
 
@@ -140,7 +145,7 @@ function initQuillEditor() {
             ]
         },
         theme: 'snow',
-        placeholder: '在这里输入项目内容...'
+        placeholder: '项目概述'
     });
 }
 
@@ -179,6 +184,12 @@ function initPage() {
     
     // 初始化语音输入和弹窗对话框
     initInputDialog();
+    
+    // 设置返回按钮事件
+    setupBackButton();
+    
+    // 设置修改跟踪
+    setupChangeTracking();
 }
 
 // 设置提醒切换事件
@@ -344,6 +355,13 @@ function loadProjectData() {
         
         // 更新图表
         updateChart();
+        
+        // 存储原始状态以跟踪更改
+        originalContent = project.content;
+        originalProgressEntries = project.progressEntries || [];
+        
+        // 重置更改状态
+        hasUnsavedChanges = false;
     });
 }
 
@@ -607,7 +625,7 @@ function initChart() {
 }
 
 // 保存项目
-function saveProject() {
+function saveProject(callback) {
     console.log('saveProject 函数已触发');
     
     // 检查用户是否已登录
@@ -621,7 +639,7 @@ function saveProject() {
             if (asyncUser) {
                 console.log('异步检查发现用户，继续保存...');
                 // 找到用户后，继续保存过程
-                continueProjectSave(asyncUser);
+                continueProjectSave(asyncUser, callback);
             } else {
                 console.error('用户未登录，无法保存项目');
                 alert('用户未登录，无法保存项目，请重新登录');
@@ -631,12 +649,12 @@ function saveProject() {
     } else {
         // 用户已登录，直接继续
         console.log('同步检查发现用户，继续保存...');
-        continueProjectSave(user);
+        continueProjectSave(user, callback);
     }
 }
 
 // 继续保存项目（在确认用户已登录后）
-function continueProjectSave(user) {
+function continueProjectSave(user, callback) {
     console.log('继续保存项目，用户ID:', user.uid);
     
     // 获取用户特定的项目引用
@@ -661,6 +679,17 @@ function continueProjectSave(user) {
                 console.log('项目更新成功');
                 restoreSaveButton();
                 
+                // 重置更改状态
+                hasUnsavedChanges = false;
+                originalContent = JSON.stringify(quill.getContents());
+                originalProgressEntries = collectProgressEntries();
+                
+                // 如果有回调函数则执行它
+                if (typeof callback === 'function') {
+                    callback();
+                    return;
+                }
+                
                 // 询问用户是否返回象限页面
                 if (confirm('项目保存成功！是否返回象限页面？')) {
                     window.location.href = '/time-quadrant.html';
@@ -681,6 +710,18 @@ function continueProjectSave(user) {
             .then((ref) => {
                 console.log('新项目创建成功，ID:', ref.key);
                 restoreSaveButton();
+                
+                // 重置更改状态
+                hasUnsavedChanges = false;
+                projectId = ref.key; // 更新项目ID
+                originalContent = JSON.stringify(quill.getContents());
+                originalProgressEntries = collectProgressEntries();
+                
+                // 如果有回调函数则执行它
+                if (typeof callback === 'function') {
+                    callback();
+                    return;
+                }
                 
                 // 询问用户是否返回象限页面
                 if (confirm('项目创建成功！是否返回象限页面？')) {
@@ -1343,4 +1384,104 @@ function extractFallbackInfo(content) {
     
     console.log("备选方法提取结果:", result);
     return result;
+}
+
+// 设置返回按钮事件
+function setupBackButton() {
+    if (backBtn) {
+        // 移除默认的onclick属性（如果存在）
+        backBtn.removeAttribute('onclick');
+        
+        // 添加新的点击事件监听器
+        backBtn.addEventListener('click', function(e) {
+            // 如果有未保存的更改，询问用户是否保存
+            if (hasUnsavedChanges) {
+                e.preventDefault(); // 阻止默认行为
+                
+                const userChoice = confirm('您有未保存的更改，是否保存后再返回？\n\n- 点击"确定"保存并返回\n- 点击"取消"不保存直接返回');
+                
+                if (userChoice) {
+                    // 用户选择保存更改
+                    saveProject(function() {
+                        // 保存完成后返回象限页面
+                        window.location.href = '/time-quadrant.html';
+                    });
+                } else {
+                    // 用户选择不保存直接返回
+                    window.location.href = '/time-quadrant.html';
+                }
+            } else {
+                // 没有更改，直接返回
+                window.location.href = '/time-quadrant.html';
+            }
+        });
+    }
+}
+
+// 设置修改跟踪
+function setupChangeTracking() {
+    // 跟踪Quill编辑器的内容变化
+    if (quill) {
+        quill.on('text-change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    // 跟踪项目标题变化
+    if (projectTitle) {
+        const originalTitle = projectTitle.textContent;
+        projectTitle.addEventListener('DOMSubtreeModified', function() {
+            if (projectTitle.textContent !== originalTitle) {
+                hasUnsavedChanges = true;
+            }
+        });
+    }
+    
+    // 跟踪提醒设置变化
+    if (reminderToggle) {
+        reminderToggle.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderDate) {
+        reminderDate.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderMusic) {
+        reminderMusic.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderRepeat) {
+        reminderRepeat.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    // 在MutationObserver上监听进度条目的变化
+    const progressObserver = new MutationObserver(function() {
+        hasUnsavedChanges = true;
+    });
+    
+    if (progressEntries) {
+        progressObserver.observe(progressEntries, { 
+            childList: true, 
+            subtree: true,
+            attributes: true,
+            characterData: true
+        });
+    }
+    
+    // 监听进度条目的输入变化
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('progress-entry-input') || 
+            e.target.classList.contains('progress-entry-progress') ||
+            e.target.classList.contains('progress-entry-date')) {
+            hasUnsavedChanges = true;
+        }
+    });
 }
