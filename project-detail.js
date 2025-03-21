@@ -15,7 +15,7 @@ let progressData = {
 };
 
 // DOM 元素
-let backBtn, saveBtn, projectTitle;
+let backBtn, saveBtn, deleteBtn, projectTitle;
 let reminderToggle, reminderSettings, reminderDate, reminderMusic, reminderRepeat;
 let addProgressBtn, progressEntries;
 
@@ -119,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initDOMReferences() {
     backBtn = document.getElementById('back-btn');
     saveBtn = document.getElementById('save-btn');
+    deleteBtn = document.getElementById('delete-btn');
     projectTitle = document.getElementById('project-title');
     reminderToggle = document.getElementById('reminder-toggle');
     reminderSettings = document.getElementById('reminder-settings');
@@ -164,9 +165,20 @@ function initPage() {
     if (projectId) {
         console.log('检测到项目ID，加载现有项目:', projectId);
         loadProjectData();
+        
+        // 只有在编辑现有项目时才启用删除按钮
+        if (deleteBtn) {
+            deleteBtn.style.display = 'inline-block';
+            deleteBtn.addEventListener('click', deleteProject);
+        }
     } else if (quadrantParam) {
         console.log('检测到象限参数，显示创建新项目对话框');
         showInputDialog();
+        
+        // 创建新项目时隐藏删除按钮
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+        }
     } else {
         console.log('无效的参数组合，返回象限页面');
         alert('无效的项目参数，将返回象限页面');
@@ -1484,4 +1496,104 @@ function setupChangeTracking() {
             hasUnsavedChanges = true;
         }
     });
+}
+
+// 删除项目
+function deleteProject() {
+    console.log('deleteProject 函数已触发');
+    
+    // 如果有未保存的更改，先询问用户是否保存
+    if (hasUnsavedChanges) {
+        const saveChoice = confirm('您有未保存的更改，删除前是否需要保存？\n\n- 点击"确定"先保存再删除\n- 点击"取消"直接删除不保存');
+        
+        if (saveChoice) {
+            // 先保存再删除
+            saveProject(function() {
+                // 保存完成后执行删除
+                confirmAndDeleteProject();
+            });
+            return;
+        }
+    }
+    
+    // 没有未保存的更改或用户选择不保存，直接执行删除确认
+    confirmAndDeleteProject();
+}
+
+// 确认并删除项目
+function confirmAndDeleteProject() {
+    // 确认删除
+    if (!confirm('确定要删除此项目吗？此操作不可撤销。')) {
+        return;
+    }
+    
+    // 检查用户是否已登录
+    const user = firebase.auth().currentUser;
+    
+    if (!user) {
+        console.log('同步检查未发现用户，尝试异步检查...');
+        
+        // 如果同步检查未发现用户，尝试使用异步方法
+        firebase.auth().onAuthStateChanged(function(asyncUser) {
+            if (asyncUser) {
+                console.log('异步检查发现用户，继续删除...');
+                // 找到用户后，继续删除过程
+                continueProjectDelete(asyncUser);
+            } else {
+                console.error('用户未登录，无法删除项目');
+                alert('用户未登录，无法删除项目，请重新登录');
+                window.location.href = '/login.html';
+            }
+        });
+    } else {
+        // 用户已登录，直接继续
+        console.log('同步检查发现用户，继续删除...');
+        continueProjectDelete(user);
+    }
+}
+
+// 继续删除项目（在确认用户已登录后）
+function continueProjectDelete(user) {
+    console.log('继续删除项目，用户ID:', user.uid);
+    
+    // 获取用户特定的项目引用
+    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
+    
+    // 显示删除中状态
+    showDeletingState();
+    
+    // 从Firebase删除
+    if (projectId) {
+        // 删除项目
+        console.log('删除项目:', projectId);
+        userProjects.child(projectId).remove()
+            .then(() => {
+                console.log('项目删除成功');
+                alert('项目已成功删除');
+                // 删除成功后返回象限页面
+                window.location.href = '/time-quadrant.html';
+            })
+            .catch((error) => {
+                console.error('删除项目失败:', error);
+                alert('删除项目失败: ' + error.message);
+                restoreDeleteButton();
+            });
+    } else {
+        // 没有项目ID，不能删除
+        console.error('无法删除：项目ID不存在');
+        alert('无法删除：项目ID不存在');
+        restoreDeleteButton();
+    }
+}
+
+// 显示删除中状态
+function showDeletingState() {
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+}
+
+// 恢复删除按钮状态
+function restoreDeleteButton() {
+    deleteBtn.disabled = false;
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 删除';
 }
