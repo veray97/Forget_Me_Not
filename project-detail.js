@@ -262,10 +262,12 @@ function createProgressEntry(date = null, progress = '', content = '') {
     const entryDate = date ? new Date(date) : new Date();
     const dateStr = formatDateForEntry(entryDate);
     
-    // 添加HTML内容
+    // 添加HTML内容，使用日期输入框替代静态文本
     entryEl.innerHTML = `
         <div class="progress-entry-header">
-            <span class="progress-entry-date">${dateStr}</span>
+            <div class="progress-entry-date-container">
+                日期: <input type="date" class="progress-entry-date" value="${dateStr}" style="width: 130px;">
+            </div>
             <div class="progress-entry-value-container">
                 进度: <input type="number" class="progress-entry-progress" min="0" max="100" value="${progress}" style="width: 50px;"> %
             </div>
@@ -284,6 +286,12 @@ function createProgressEntry(date = null, progress = '', content = '') {
     // 添加进度输入事件
     const progressInput = entryEl.querySelector('.progress-entry-progress');
     progressInput.addEventListener('change', () => {
+        updateChart();
+    });
+    
+    // 添加日期输入事件
+    const dateInput = entryEl.querySelector('.progress-entry-date');
+    dateInput.addEventListener('change', () => {
         updateChart();
     });
     
@@ -394,7 +402,7 @@ function collectProgressEntries() {
         const contentEl = entryEl.querySelector('.progress-entry-input');
         
         if (dateEl && progressEl && contentEl) {
-            const date = dateEl.textContent;
+            const date = dateEl.value;  // 从输入框获取值
             const progress = parseInt(progressEl.value) || 0;
             const content = contentEl.value.trim();
             
@@ -484,7 +492,7 @@ function updateChart() {
         const progressEl = entryEl.querySelector('.progress-entry-progress');
         
         if (dateEl && progressEl) {
-            const date = dateEl.textContent;
+            const date = dateEl.value;  // 从输入框获取日期值
             const progress = parseInt(progressEl.value) || 0;
             
             entries.push({ date, progress });
@@ -537,7 +545,7 @@ function updateChartTitle() {
     entryElements.forEach(entryEl => {
         const dateEl = entryEl.querySelector('.progress-entry-date');
         if (dateEl) {
-            const date = new Date(dateEl.textContent);
+            const date = new Date(dateEl.value);  // 从输入框获取日期值
             if (!latestDate || date > latestDate) {
                 latestDate = date;
             }
