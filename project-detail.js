@@ -15,8 +15,9 @@ let progressData = {
 };
 
 // DOM 元素
-let backBtn, saveBtn, projectTitle, progressSlider, progressValue;
+let backBtn, saveBtn, projectTitle;
 let reminderToggle, reminderSettings, reminderDate, reminderMusic, reminderRepeat;
+let addProgressBtn, progressEntries;
 
 // URL参数
 let projectId, quadrantParam;
@@ -114,13 +115,13 @@ function initDOMReferences() {
     backBtn = document.getElementById('back-btn');
     saveBtn = document.getElementById('save-btn');
     projectTitle = document.getElementById('project-title');
-    progressSlider = document.getElementById('progress-slider');
-    progressValue = document.getElementById('progress-value');
     reminderToggle = document.getElementById('reminder-toggle');
     reminderSettings = document.getElementById('reminder-settings');
     reminderDate = document.getElementById('reminder-date');
     reminderMusic = document.getElementById('reminder-music');
     reminderRepeat = document.getElementById('reminder-repeat');
+    addProgressBtn = document.getElementById('add-progress-btn');
+    progressEntries = document.getElementById('progress-entries');
 }
 
 // 初始化Quill编辑器
@@ -167,24 +168,17 @@ function initPage() {
         window.location.href = '/time-quadrant.html';
     }
     
-    // 设置进度条事件
-    setupProgressSlider();
-    
     // 设置提醒切换事件
     setupReminderToggle();
     
     // 设置项目标题编辑功能
     setupTitleEditing();
     
+    // 设置添加进度条目事件
+    setupAddProgressEntry();
+    
     // 初始化语音输入和弹窗对话框
     initInputDialog();
-}
-
-// 设置进度条事件
-function setupProgressSlider() {
-    progressSlider.addEventListener('input', () => {
-        progressValue.textContent = `${progressSlider.value}%`;
-    });
 }
 
 // 设置提醒切换事件
@@ -249,6 +243,68 @@ function updateProjectTitle(value) {
     }
 }
 
+// 设置添加进度条目事件
+function setupAddProgressEntry() {
+    if (addProgressBtn) {
+        addProgressBtn.addEventListener('click', () => {
+            createProgressEntry();
+        });
+    }
+}
+
+// 创建进度条目
+function createProgressEntry(date = null, progress = '', content = '') {
+    // 创建新进度条目
+    const entryEl = document.createElement('div');
+    entryEl.className = 'progress-entry';
+    
+    // 获取当前日期，如果未提供则使用今天
+    const entryDate = date ? new Date(date) : new Date();
+    const dateStr = formatDateForEntry(entryDate);
+    
+    // 添加HTML内容
+    entryEl.innerHTML = `
+        <div class="progress-entry-header">
+            <span class="progress-entry-date">${dateStr}</span>
+            <div class="progress-entry-value-container">
+                进度: <input type="number" class="progress-entry-progress" min="0" max="100" value="${progress}" style="width: 50px;"> %
+            </div>
+        </div>
+        <textarea class="progress-entry-input" placeholder="输入此次进度更新的内容...">${content}</textarea>
+        <button class="progress-entry-remove"><i class="fas fa-times"></i></button>
+    `;
+    
+    // 添加删除按钮事件
+    const removeBtn = entryEl.querySelector('.progress-entry-remove');
+    removeBtn.addEventListener('click', () => {
+        entryEl.remove();
+        updateChart();
+    });
+    
+    // 添加进度输入事件
+    const progressInput = entryEl.querySelector('.progress-entry-progress');
+    progressInput.addEventListener('change', () => {
+        updateChart();
+    });
+    
+    // 添加到容器中
+    progressEntries.appendChild(entryEl);
+    
+    // 更新图表
+    updateChart();
+    
+    return entryEl;
+}
+
+// 为进度条目格式化日期
+function formatDateForEntry(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
 // 加载项目数据
 function loadProjectData() {
     const userProjects = userProjectsRef();
@@ -272,17 +328,85 @@ function loadProjectData() {
         // 设置项目内容
         setProjectContent(project.content);
         
-        // 设置项目进度
-        const currentProgress = project.progress || 0;
-        progressSlider.value = currentProgress;
-        progressValue.textContent = `${currentProgress}%`;
-        
         // 加载提醒设置
         loadReminderSettings(project);
         
-        // 加载进度历史
-        loadProgressHistory();
+        // 加载进度历史记录
+        loadProgressEntries(project);
+        
+        // 更新图表
+        updateChart();
     });
+}
+
+// 获取用户项目数据库引用
+function userProjectsRef() {
+    const user = firebase.auth().currentUser;
+    if (!user) return null;
+    return firebase.database().ref(`users/${user.uid}/projects`);
+}
+
+// 加载进度历史记录
+function loadProgressEntries(project) {
+    // 清空现有进度条目
+    progressEntries.innerHTML = '';
+    
+    // 如果存在进度条目数据，则加载
+    if (project.progressEntries && Array.isArray(project.progressEntries)) {
+        // 按日期排序
+        const sortedEntries = project.progressEntries.sort((a, b) => {
+            return new Date(b.date) - new Date(a.date);
+        });
+        
+        // 创建进度条目
+        sortedEntries.forEach(entry => {
+            createProgressEntry(entry.date, entry.progress, entry.content);
+        });
+    } else {
+        // 如果没有进度条目，但有进度历史，则从进度历史中创建
+        if (project.progressHistory) {
+            const sortedHistory = Object.entries(project.progressHistory)
+                .sort(([timeA], [timeB]) => parseInt(timeB) - parseInt(timeA));
+            
+            if (sortedHistory.length > 0) {
+                // 只创建最新的一条记录
+                const [latestTime, latestProgress] = sortedHistory[0];
+                const date = new Date(parseInt(latestTime));
+                createProgressEntry(date, latestProgress, '从旧版本自动迁移的进度记录');
+            }
+        }
+        
+        // 如果仍然没有条目，创建一个新的
+        if (progressEntries.children.length === 0) {
+            createProgressEntry(new Date(), project.progress || 0, '初始进度记录');
+        }
+    }
+}
+
+// 从进度条目收集数据
+function collectProgressEntries() {
+    const entries = [];
+    const entryElements = progressEntries.querySelectorAll('.progress-entry');
+    
+    entryElements.forEach(entryEl => {
+        const dateEl = entryEl.querySelector('.progress-entry-date');
+        const progressEl = entryEl.querySelector('.progress-entry-progress');
+        const contentEl = entryEl.querySelector('.progress-entry-input');
+        
+        if (dateEl && progressEl && contentEl) {
+            const date = dateEl.textContent;
+            const progress = parseInt(progressEl.value) || 0;
+            const content = contentEl.value.trim();
+            
+            entries.push({
+                date: date,
+                progress: progress,
+                content: content
+            });
+        }
+    });
+    
+    return entries;
 }
 
 // 设置项目内容
@@ -341,117 +465,51 @@ function formatDateForInput(date) {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-// 加载进度历史
-function loadProgressHistory() {
-    console.log('尝试加载进度历史...');
-    
-    // 检查参数
-    if (!projectId) {
-        console.log('未找到项目ID，跳过加载进度历史');
-        return;
-    }
-    
-    // 检查用户是否已登录
-    const user = firebase.auth().currentUser;
-    
-    if (!user) {
-        console.log('同步检查未发现用户，尝试异步检查...');
-        
-        // 如果同步检查未发现用户，尝试使用异步方法
-        firebase.auth().onAuthStateChanged(function(asyncUser) {
-            if (asyncUser) {
-                console.log('异步检查发现用户，继续加载...');
-                // 找到用户后，继续加载过程
-                continueLoadProgressHistory(asyncUser);
-            } else {
-                console.error('用户未登录，无法加载进度历史');
-                // 这里不跳转，只是记录错误
-            }
-        });
-    } else {
-        // 用户已登录，直接继续
-        console.log('同步检查发现用户，继续加载...');
-        continueLoadProgressHistory(user);
-    }
-}
-
-// 继续加载进度历史（在确认用户已登录后）
-function continueLoadProgressHistory(user) {
-    console.log('继续加载进度历史，用户ID:', user.uid, '项目ID:', projectId);
-    
-    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
-    
-    userProjects.child(`${projectId}/progressHistory`).once('value', (snapshot) => {
-        const history = snapshot.val() || {};
-        
-        // 清空现有数据
-        progressData.labels = [];
-        progressData.datasets[0].data = [];
-        
-        // 按时间戳排序
-        const sortedHistory = Object.entries(history)
-            .sort(([timeA], [timeB]) => parseInt(timeA) - parseInt(timeB));
-        
-        // 填充数据
-        sortedHistory.forEach(([timestamp, progress]) => {
-            const date = new Date(parseInt(timestamp));
-            const dateStr = formatDateForChart(date);
-            
-            progressData.labels.push(dateStr);
-            progressData.datasets[0].data.push(progress);
-        });
-        
-        // 如果没有历史数据，添加创建时间和初始进度
-        if (sortedHistory.length === 0 && projectId) {
-            addInitialProgressData(user);
-        } else {
-            // 更新图表
-            updateChart();
-        }
-    }).catch(error => {
-        console.error('加载进度历史失败:', error);
-    });
-}
-
-// 添加初始进度数据
-function addInitialProgressData(user) {
-    console.log('添加初始进度数据...');
-    
-    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
-    
-    userProjects.child(projectId).once('value', (snapshot) => {
-        const project = snapshot.val();
-        if (project && project.timestamp) {
-            const createDate = new Date(project.timestamp);
-            const createDateStr = formatDateForChart(createDate);
-            
-            progressData.labels.push(createDateStr);
-            progressData.datasets[0].data.push(project.progress || 0);
-        }
-        
-        // 更新图表
-        updateChart();
-    }).catch(error => {
-        console.error('加载项目数据失败:', error);
-        // 即使失败也尝试更新图表
-        updateChart();
-    });
-}
-
-// 格式化日期为图表显示格式
-function formatDateForChart(date) {
-    return `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}-${date.getFullYear()}`;
-}
-
 // 更新图表
 function updateChart() {
-    // 如果没有数据，添加当前日期和进度
+    // 更新标题显示未更新天数
+    updateChartTitle();
+    
+    // 清空现有数据
+    progressData.labels = [];
+    progressData.datasets[0].data = [];
+    
+    // 获取所有进度条目
+    const entryElements = progressEntries.querySelectorAll('.progress-entry');
+    
+    // 按日期排序（升序）
+    const entries = [];
+    entryElements.forEach(entryEl => {
+        const dateEl = entryEl.querySelector('.progress-entry-date');
+        const progressEl = entryEl.querySelector('.progress-entry-progress');
+        
+        if (dateEl && progressEl) {
+            const date = dateEl.textContent;
+            const progress = parseInt(progressEl.value) || 0;
+            
+            entries.push({ date, progress });
+        }
+    });
+    
+    // 按日期排序
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // 填充数据
+    entries.forEach(entry => {
+        const date = new Date(entry.date);
+        const dateStr = formatDateForChart(date);
+        
+        progressData.labels.push(dateStr);
+        progressData.datasets[0].data.push(entry.progress);
+    });
+    
+    // 如果没有数据，添加一个空的数据点
     if (progressData.labels.length === 0) {
         const today = new Date();
         const todayStr = formatDateForChart(today);
         
         progressData.labels.push(todayStr);
-        progressData.datasets[0].data.push(parseInt(progressSlider.value) || 0);
+        progressData.datasets[0].data.push(0);
     }
     
     // 更新图表
@@ -460,6 +518,55 @@ function updateChart() {
     } else {
         initChart();
     }
+}
+
+// 更新图表标题以显示未更新天数
+function updateChartTitle() {
+    const chartTitle = document.getElementById('chart-title');
+    if (!chartTitle) return;
+    
+    // 获取最新的进度记录日期
+    const entryElements = progressEntries.querySelectorAll('.progress-entry');
+    if (entryElements.length === 0) {
+        chartTitle.textContent = '进度追踪';
+        return;
+    }
+    
+    // 找到最新的日期
+    let latestDate = null;
+    entryElements.forEach(entryEl => {
+        const dateEl = entryEl.querySelector('.progress-entry-date');
+        if (dateEl) {
+            const date = new Date(dateEl.textContent);
+            if (!latestDate || date > latestDate) {
+                latestDate = date;
+            }
+        }
+    });
+    
+    if (!latestDate) {
+        chartTitle.textContent = '进度追踪';
+        return;
+    }
+    
+    // 计算与当前日期的差距
+    const today = new Date();
+    const diffTime = Math.abs(today - latestDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // 更新标题
+    if (diffDays <= 0) {
+        chartTitle.textContent = '今天已更新项目进度';
+    } else if (diffDays === 1) {
+        chartTitle.textContent = '1天未更新项目进度';
+    } else {
+        chartTitle.textContent = `${diffDays}天未更新项目进度`;
+    }
+}
+
+// 格式化日期为图表显示格式
+function formatDateForChart(date) {
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}-${date.getFullYear()}`;
 }
 
 // 初始化图表
@@ -551,7 +658,7 @@ function continueProjectSave(user) {
                     window.location.href = '/time-quadrant.html';
                 } else {
                     // 重新加载进度历史
-                    loadProgressHistory();
+                    loadProgressEntries(projectData);
                 }
             })
             .catch((error) => {
@@ -586,7 +693,6 @@ function continueProjectSave(user) {
 // 获取项目数据
 function getProjectData() {
     const content = JSON.stringify(quill.getContents());
-    const progress = parseInt(progressSlider.value);
     const title = projectTitle.textContent || projectTitle.getAttribute('placeholder');
     
     // 验证标题
@@ -598,7 +704,6 @@ function getProjectData() {
     
     console.log('准备保存项目:', {
         title: title,
-        progress: progress,
         projectId: projectId,
         quadrantParam: quadrantParam
     });
@@ -610,11 +715,26 @@ function getProjectData() {
     const updates = {
         title: title,
         content: content,
-        progress: progress,
         lastUpdated: timestamp
     };
     
-    // 如果是从象限页面创建的新项目，添加象限信息和创建时间戳
+    // 获取进度条目数据
+    const progressEntries = collectProgressEntries();
+    
+    // 如果有进度条目，计算最新的进度作为总进度
+    if (progressEntries.length > 0) {
+        // 按日期排序（降序）
+        progressEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // 使用最新的进度作为当前进度
+        updates.progress = progressEntries[0].progress;
+    } else {
+        updates.progress = 0;
+    }
+    
+    // 保存进度条目
+    updates.progressEntries = progressEntries;
+    
+    // 如果从未保存过，则添加创建时间戳和象限信息
     if (!projectId && quadrantParam) {
         updates.quadrant = quadrantParam;
         updates.timestamp = timestamp;
@@ -634,13 +754,12 @@ function getProjectData() {
         updates.hasReminder = false;
     }
     
-    // 创建进度历史对象
-    if (!updates.progressHistory) {
-        updates.progressHistory = {};
-    }
-    
-    // 使用时间戳作为键（避免使用 / 字符）
-    updates.progressHistory[timestamp.toString()] = progress;
+    // 创建进度历史对象，保持向后兼容
+    updates.progressHistory = {};
+    progressEntries.forEach(entry => {
+        const entryDate = new Date(entry.date).getTime();
+        updates.progressHistory[entryDate.toString()] = entry.progress;
+    });
     
     return updates;
 }
@@ -735,15 +854,20 @@ async function showInputDialog() {
             if (parsedInfo && parsedInfo.title) {
                 projectTitle.textContent = parsedInfo.title;
             } else {
-                // 如果没有标题，使用内容的前15个字符作为标题
-                const autoTitle = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+                // 如果没有标题，使用当前日期和"新添加项目"作为标题
+                const today = new Date();
+                const dateStr = ('0' + (today.getMonth() + 1)).slice(-2) + 
+                               ('0' + today.getDate()).slice(-2) + 
+                               today.getFullYear();
+                const autoTitle = dateStr + "新添加项目";
                 projectTitle.textContent = autoTitle;
             }
             
             // 设置进度（如果 API 解析出了进度，否则默认为0）
             const progress = parsedInfo && parsedInfo.progress !== undefined ? parsedInfo.progress : 0;
-            progressSlider.value = progress;
-            progressValue.textContent = `${progress}%`;
+            
+            // 创建第一个进度条目
+            createProgressEntry(new Date(), progress, content);
             
             // 设置提醒（如果 API 解析出了提醒设置）
             if (parsedInfo && parsedInfo.reminderTime) {
@@ -762,8 +886,8 @@ async function showInputDialog() {
                 }
             }
             
-            // 初始化图表
-            initChart();
+            // 更新图表
+            updateChart();
             
             // 自动保存项目
             saveProject();
@@ -789,16 +913,19 @@ async function showInputDialog() {
         // 设置项目内容
         quill.setText(content);
         
-        // 使用内容前15个字符作为标题
-        const autoTitle = content.substring(0, 15) + (content.length > 15 ? '...' : '');
+        // 使用当前日期和"新添加项目"作为标题
+        const today = new Date();
+        const dateStr = ('0' + (today.getMonth() + 1)).slice(-2) + 
+                       ('0' + today.getDate()).slice(-2) + 
+                       today.getFullYear();
+        const autoTitle = dateStr + "新添加项目";
         projectTitle.textContent = autoTitle;
         
-        // 设置默认进度为0
-        progressSlider.value = 0;
-        progressValue.textContent = '0%';
+        // 创建初始进度条目
+        createProgressEntry(new Date(), 0, content);
         
-        // 初始化图表
-        initChart();
+        // 更新图表
+        updateChart();
         
         // 自动保存项目
         saveProject();
@@ -996,9 +1123,8 @@ function setDefaultProjectValues() {
     // 设置默认标题
     projectTitle.textContent = '';
     
-    // 设置默认进度
-    progressSlider.value = 0;
-    progressValue.textContent = '0%';
+    // 创建初始进度条目
+    createProgressEntry(new Date(), 0, '');
     
     // 初始化图表
     initChart();
