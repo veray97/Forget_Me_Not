@@ -894,6 +894,13 @@ async function showInputDialog() {
     
     // 取消按钮处理函数
     function handleDialogCancel() {
+        // 确保在取消时关闭所有录音和WebSocket连接
+        const voiceBtn = document.getElementById('voice-btn');
+        if (voiceBtn && voiceBtn.classList.contains('recording')) {
+            // 触发点击事件以停止录音
+            voiceBtn.click();
+        }
+        
         inputDialog.style.display = 'none';
         // 重定向回时间象限页面
         window.location.href = '/time-quadrant.html';
@@ -907,6 +914,13 @@ async function showInputDialog() {
         if (!content) {
             alert('请输入项目详情');
             return;
+        }
+        
+        // 确保在提交前停止任何进行中的录音
+        const voiceBtn = document.getElementById('voice-btn');
+        if (voiceBtn && voiceBtn.classList.contains('recording')) {
+            // 触发点击事件以停止录音
+            voiceBtn.click();
         }
         
         // 显示处理中状态
@@ -1074,8 +1088,10 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
     recognition.lang = currentLang;
     
     let isRecording = false;
-    let audioChunks = []; // 存储录音数据
+    let socket = null;
     let mediaRecorder = null;
+    let audioChunks = []; // 存储录音数据
+    const texts = {}; // 存储实时转录结果
 
     // 语音按钮点击事件
     voiceBtn.addEventListener('click', () => {
@@ -1091,27 +1107,117 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         }
     }
     
-    // 开始录音 - 同时使用浏览器API和准备AssemblyAI数据
+    // 开始录音 - 使用AssemblyAI的实时WebSocket API
     async function startRecording() {
         try {
+            // 首先获取临时令牌，避免在客户端暴露API密钥
+            const apiKey = ASSEMBLY_API.KEY;
+            if (!apiKey || apiKey === 'your-assemblyai-api-key-here') {
+                throw new Error("AssemblyAI API 密钥未设置");
+            }
+            
             // 开始浏览器语音识别（用于即时反馈）
             recognition.start();
             
-            // 同时启动媒体录制（为AssemblyAI准备数据）
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
+            // 建立与AssemblyAI的WebSocket连接
+            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh`);
             
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
+            // 处理WebSocket消息事件
+            socket.onmessage = (message) => {
+                try {
+                    const res = JSON.parse(message.data);
+                    
+                    // 检查是否包含文本转录内容
+                    if (res.text) {
+                        texts[res.audio_start] = res.text;
+                        let msg = '';
+                        const keys = Object.keys(texts);
+                        keys.sort((a, b) => a - b);
+                        
+                        for (const key of keys) {
+                            if (texts[key]) {
+                                msg += ` ${texts[key]}`;
+                            }
+                        }
+                        
+                        // 如果是最终结果，则标记为AssemblyAI识别结果
+                        if (res.message_type === 'FinalTranscript') {
+                            dialogInput.value += "\n[AssemblyAI 识别结果]: " + res.text + "\n";
+                        } else {
+                            // 显示实时识别的中间结果
+                            const lastLine = dialogInput.value.split('\n').pop();
+                            if (lastLine.includes('[实时识别中...] ')) {
+                                // 替换最后一行
+                                dialogInput.value = dialogInput.value.substring(0, dialogInput.value.lastIndexOf('\n')) + 
+                                                   '\n[实时识别中...] ' + msg;
+                            } else {
+                                dialogInput.value += '\n[实时识别中...] ' + msg;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("处理转录消息失败:", error);
+                }
             };
             
-            mediaRecorder.start();
-            voiceBtn.classList.add('recording');
-            isRecording = true;
+            // 处理WebSocket错误
+            socket.onerror = (event) => {
+                console.error("WebSocket错误:", event);
+                socket.close();
+                stopRecording();
+            };
             
-            // 显示录音状态
-            dialogInput.value += "\n[开始录音...]\n";
+            // 处理WebSocket关闭
+            socket.onclose = (event) => {
+                console.log("WebSocket连接关闭:", event);
+                socket = null;
+            };
+            
+            // 处理WebSocket打开
+            socket.onopen = async () => {
+                // 发送握手消息，包含认证信息
+                socket.send(JSON.stringify({
+                    token: apiKey, 
+                    expires_at: (new Date(Date.now() + 1000 * 60 * 10)).toISOString() // 10分钟过期
+                }));
+                
+                // 启动媒体录制
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = async (event) => {
+                    if (event.data.size > 0) {
+                        // 将音频数据添加到缓冲区
+                        audioChunks.push(event.data);
+                        
+                        // 转换音频数据为适当的格式并发送
+                        const audioBlob = new Blob([event.data], { type: 'audio/webm;codecs=pcm' });
+                        const reader = new FileReader();
+                        
+                        reader.onload = () => {
+                            if (socket && socket.readyState === WebSocket.OPEN) {
+                                const base64data = reader.result;
+                                const audioData = base64data.split('base64,')[1];
+                                if (audioData) {
+                                    socket.send(JSON.stringify({ audio_data: audioData }));
+                                }
+                            }
+                        };
+                        
+                        reader.readAsDataURL(audioBlob);
+                    }
+                };
+                
+                // 设置较小的时间片，提高实时性
+                mediaRecorder.start(100);
+                
+                voiceBtn.classList.add('recording');
+                isRecording = true;
+                
+                // 显示录音状态
+                dialogInput.value += "\n[开始实时录音...]\n";
+            };
             
         } catch (error) {
             console.error("录音启动失败:", error);
@@ -1119,117 +1225,31 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         }
     }
     
-    // 停止录音并处理
+    // 停止录音并关闭连接
     function stopRecording() {
         // 停止浏览器语音识别
         recognition.stop();
+        
+        // 如果WebSocket连接存在，发送终止会话的消息并关闭
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ terminate_session: true }));
+            socket.close();
+        }
         
         // 如果媒体录制器存在并处于录制状态
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
             
-            // 媒体录制完成后处理音频数据
-            mediaRecorder.onstop = async () => {
-                voiceBtn.classList.remove('recording');
-                isRecording = false;
-                
-                dialogInput.value += "\n[处理录音中...]\n";
-                
-                // 创建音频 Blob
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                
-                try {
-                    // 调用 AssemblyAI 进行高级语音识别
-                    const transcription = await sendToAssemblyAI(audioBlob);
-                    if (transcription) {
-                        // 将结果添加到输入框
-                        dialogInput.value += "\n[AssemblyAI 识别结果]: " + transcription + "\n";
-                    }
-                } catch (error) {
-                    console.error("AssemblyAI 处理失败:", error);
-                    dialogInput.value += "\n[转录失败: " + error.message + "]\n";
-                }
-                
-                // 释放媒体流
+            // 释放媒体流
+            if (mediaRecorder.stream) {
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            };
-        }
-    }
-    
-    // 发送音频到 AssemblyAI 进行处理
-    async function sendToAssemblyAI(audioBlob) {
-        // 使用 api-keys.js 中的 API 密钥
-        const apiKey = ASSEMBLY_API.KEY;
-        if (!apiKey || apiKey === 'your-assemblyai-api-key-here') {
-            throw new Error("AssemblyAI API 密钥未设置");
-        }
-        
-        // 首先上传音频文件
-        const uploadResponse = await fetch(ASSEMBLY_API.URL + '/upload', {
-            method: 'POST',
-            headers: {
-                'Authorization': apiKey
-            },
-            body: audioBlob
-        });
-        
-        if (!uploadResponse.ok) {
-            throw new Error("音频上传失败");
-        }
-        
-        const uploadResult = await uploadResponse.json();
-        const audioUrl = uploadResult.upload_url;
-        
-        // 然后发送转录请求
-        const transcriptResponse = await fetch(ASSEMBLY_API.URL + '/transcript', {
-            method: 'POST',
-            headers: {
-                'Authorization': apiKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                audio_url: audioUrl,
-                language_code: currentLang.substring(0, 2) // zh 或 en
-            })
-        });
-        
-        if (!transcriptResponse.ok) {
-            throw new Error("转录请求失败");
-        }
-        
-        const transcriptResult = await transcriptResponse.json();
-        const transcriptId = transcriptResult.id;
-        
-        // 轮询获取结果
-        let result = null;
-        for (let i = 0; i < 30; i++) { // 最多等待30次
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
-            
-            const pollingResponse = await fetch(ASSEMBLY_API.URL + '/transcript/' + transcriptId, {
-                method: 'GET',
-                headers: {
-                    'Authorization': apiKey
-                }
-            });
-            
-            if (!pollingResponse.ok) {
-                throw new Error("获取转录结果失败");
             }
             
-            const pollingResult = await pollingResponse.json();
+            voiceBtn.classList.remove('recording');
+            isRecording = false;
             
-            if (pollingResult.status === 'completed') {
-                result = pollingResult.text;
-                break;
-            } else if (pollingResult.status === 'error') {
-                throw new Error("AssemblyAI 处理出错: " + pollingResult.error);
-            }
-            
-            // 更新状态
-            dialogInput.value = dialogInput.value.replace(/\[处理录音中...\]/, `[处理录音中...${i+1}秒]`);
+            dialogInput.value += "\n[录音已停止]\n";
         }
-        
-        return result;
     }
     
     // 浏览器语音识别结果事件（用于即时反馈）
@@ -1248,8 +1268,6 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             dialogInput.value += finalTranscript + ' ';
         }
     };
-    
-    // 其他事件处理保持不变...
 }
 
 // 语音合成（文字转语音）
