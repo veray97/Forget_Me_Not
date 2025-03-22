@@ -39,6 +39,20 @@
             gap: 5px;
         }
         
+        .project-library-btn {
+            position: absolute;
+            right: 0;
+            top: 10px;
+            background: none;
+            border: none;
+            color: #3498db;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
         .quadrant-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -260,6 +274,219 @@
                 height: 200px;
             }
         }
+        
+        /* 项目集弹出框样式 */
+        .project-library-btn {
+            cursor: pointer;
+            color: #3498db;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            position: absolute;
+            right: 0;
+            top: 10px;
+            background: none;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .project-library-btn:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .project-library-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .project-library-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .library-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .library-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .delete-selected-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .delete-selected-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .select-all-btn, .deselect-all-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .select-all-btn:hover, .deselect-all-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .library-projects-container {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .library-projects-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .library-projects-table th, 
+        .library-projects-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .library-projects-table th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        
+        .library-projects-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .project-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .project-action-btn {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        
+        .project-action-btn.edit {
+            color: #3498db;
+        }
+        
+        .project-action-btn.delete {
+            color: #e74c3c;
+        }
+        
+        .project-action-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .project-progress {
+            width: 100%;
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .project-progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            border-radius: 5px;
+        }
+        
+        .quadrant-name {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .quadrant-1-name {
+            background-color: #3498db;
+        }
+        
+        .quadrant-2-name {
+            background-color: #e74c3c;
+        }
+        
+        .quadrant-3-name {
+            background-color: #2ecc71;
+        }
+        
+        .quadrant-4-name {
+            background-color: #f39c12;
+        }
+        
+        @media (max-width: 768px) {
+            .project-library-content {
+                width: 95%;
+                padding: 15px;
+                max-height: 90vh;
+            }
+            
+            .library-actions {
+                flex-wrap: wrap;
+            }
+            
+            .library-projects-table {
+                font-size: 14px;
+            }
+            
+            .library-projects-table th, 
+            .library-projects-table td {
+                padding: 8px 5px;
+            }
+        }
     </style>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -270,8 +497,48 @@
             <i class="fas fa-arrow-left"></i> 返回主页
         </button>
         <h1>时间管理象限</h1>
-        <p>根据优先级管理您的项目</p>
+        <div class="project-library-btn" id="project-library-btn">
+            <i class="fas fa-list-check"></i> 项目集
+        </div>
     </header>
+    
+    <!-- 项目集弹出框 -->
+    <div class="project-library-modal" id="project-library-modal">
+        <div class="project-library-content">
+            <div class="library-header">
+                <div class="library-title">项目集</div>
+                <button class="close-btn" id="close-library">&times;</button>
+            </div>
+            <div class="library-actions">
+                <button class="delete-selected-btn" id="delete-selected-btn">
+                    <i class="fas fa-trash"></i> 删除选中
+                </button>
+                <button class="select-all-btn" id="select-all-btn">
+                    <i class="fas fa-check-square"></i> 全选
+                </button>
+                <button class="deselect-all-btn" id="deselect-all-btn">
+                    <i class="fas fa-square"></i> 取消全选
+                </button>
+            </div>
+            <div class="library-projects-container">
+                <table class="library-projects-table">
+                    <thead>
+                        <tr>
+                            <th width="5%">选择</th>
+                            <th width="15%">象限</th>
+                            <th width="30%">项目名称</th>
+                            <th width="20%">进度</th>
+                            <th width="15%">最后更新</th>
+                            <th width="15%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="library-projects-list">
+                        <!-- 项目列表将在这里动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     
     <div class="quadrant-container">
         <div class="quadrant quadrant-1" data-quadrant="1">
@@ -341,6 +608,18 @@
         const projectQuadrant = document.getElementById('project-quadrant');
         const submitProject = document.getElementById('submit-project');
         
+        // 项目集弹出框元素
+        const projectLibraryBtn = document.getElementById('project-library-btn');
+        const projectLibraryModal = document.getElementById('project-library-modal');
+        const closeLibrary = document.getElementById('close-library');
+        const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const libraryProjectsList = document.getElementById('library-projects-list');
+        
+        // 存储所有项目数据
+        let allProjects = {};
+        
         // 页面加载时获取并显示所有项目
         document.addEventListener('DOMContentLoaded', () => {
             // 检查用户是否已登录
@@ -390,8 +669,224 @@
             // 提交表单
             submitProject.addEventListener('click', addProjectDirectly);
 
+            // 设置项目集弹出框事件
+            setupProjectLibrary();
+
             // 加载项目
             loadProjects();
+        }
+        
+        // 设置项目集弹出框事件
+        function setupProjectLibrary() {
+            // 打开项目集弹出框
+            projectLibraryBtn.addEventListener('click', () => {
+                // 打开前先更新项目列表
+                updateProjectLibraryList();
+                projectLibraryModal.style.display = 'flex';
+            });
+            
+            // 关闭项目集弹出框
+            closeLibrary.addEventListener('click', () => {
+                projectLibraryModal.style.display = 'none';
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            projectLibraryModal.addEventListener('click', (e) => {
+                if (e.target === projectLibraryModal) {
+                    projectLibraryModal.style.display = 'none';
+                }
+            });
+            
+            // 全选按钮
+            selectAllBtn.addEventListener('click', () => {
+                const checkboxes = document.querySelectorAll('.project-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            });
+            
+            // 取消全选按钮
+            deselectAllBtn.addEventListener('click', () => {
+                const checkboxes = document.querySelectorAll('.project-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            });
+            
+            // 删除选中项目
+            deleteSelectedBtn.addEventListener('click', () => {
+                const selectedCheckboxes = document.querySelectorAll('.project-checkbox:checked');
+                
+                if (selectedCheckboxes.length === 0) {
+                    alert('请先选择要删除的项目');
+                    return;
+                }
+                
+                if (confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个项目吗？此操作不可撤销。`)) {
+                    deleteSelectedProjects(selectedCheckboxes);
+                }
+            });
+        }
+        
+        // 更新项目集列表
+        function updateProjectLibraryList() {
+            // 清空项目列表
+            libraryProjectsList.innerHTML = '';
+            
+            // 如果没有项目数据，显示提示信息
+            if (Object.keys(allProjects).length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="6" style="text-align: center; padding: 20px;">
+                        <i class="fas fa-info-circle"></i> 暂无项目，请先添加项目
+                    </td>
+                `;
+                libraryProjectsList.appendChild(emptyRow);
+                return;
+            }
+            
+            // 添加所有项目到列表
+            Object.keys(allProjects).forEach(key => {
+                const project = allProjects[key];
+                project.id = key;
+                
+                // 创建项目行
+                const projectRow = document.createElement('tr');
+                
+                // 获取象限名称
+                let quadrantName = '';
+                let quadrantClass = '';
+                
+                switch (project.quadrant) {
+                    case '1':
+                        quadrantName = '重要不紧急';
+                        quadrantClass = 'quadrant-1-name';
+                        break;
+                    case '2':
+                        quadrantName = '重要且紧急';
+                        quadrantClass = 'quadrant-2-name';
+                        break;
+                    case '3':
+                        quadrantName = '不重要不紧急';
+                        quadrantClass = 'quadrant-3-name';
+                        break;
+                    case '4':
+                        quadrantName = '紧急不重要';
+                        quadrantClass = 'quadrant-4-name';
+                        break;
+                    default:
+                        quadrantName = '未分类';
+                        quadrantClass = '';
+                }
+                
+                // 格式化最后更新时间
+                const lastUpdated = project.lastUpdated 
+                    ? new Date(project.lastUpdated).toLocaleString('zh-CN', {year: 'numeric', month: '2-digit', day: '2-digit'})
+                    : '未更新';
+                
+                // 设置项目进度
+                const progress = project.progress || 0;
+                
+                // 设置项目行内容
+                projectRow.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="project-checkbox" data-id="${project.id}">
+                    </td>
+                    <td>
+                        <span class="quadrant-name ${quadrantClass}">${quadrantName}</span>
+                    </td>
+                    <td>${project.title || '无标题项目'}</td>
+                    <td>
+                        <div class="project-progress">
+                            <div class="project-progress-bar" style="width: ${progress}%"></div>
+                        </div>
+                        <div style="text-align: right; font-size: 12px;">${progress}%</div>
+                    </td>
+                    <td>${lastUpdated}</td>
+                    <td>
+                        <button class="project-action-btn edit" onclick="openProject('${project.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="project-action-btn delete" onclick="deleteProject('${project.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                // 添加到列表
+                libraryProjectsList.appendChild(projectRow);
+            });
+        }
+        
+        // 删除选中的项目
+        function deleteSelectedProjects(checkboxes) {
+            // 获取用户特定的项目引用
+            const userProjects = userProjectsRef();
+            if (!userProjects) {
+                alert('用户未登录，无法删除项目');
+                return;
+            }
+            
+            // 收集要删除的项目ID
+            const projectIds = [];
+            checkboxes.forEach(checkbox => {
+                projectIds.push(checkbox.dataset.id);
+            });
+            
+            // 创建批量删除的Promise数组
+            const deletePromises = projectIds.map(id => userProjects.child(id).remove());
+            
+            // 执行批量删除
+            Promise.all(deletePromises)
+                .then(() => {
+                    alert(`成功删除 ${projectIds.length} 个项目`);
+                    
+                    // 从本地缓存中删除项目
+                    projectIds.forEach(id => {
+                        delete allProjects[id];
+                    });
+                    
+                    // 更新项目列表
+                    updateProjectLibraryList();
+                    
+                    // 重新加载象限中的项目点
+                    loadProjects();
+                })
+                .catch(error => {
+                    console.error('删除项目失败:', error);
+                    alert('删除项目失败，请重试');
+                });
+        }
+        
+        // 删除单个项目
+        function deleteProject(projectId) {
+            if (confirm('确定要删除此项目吗？此操作不可撤销。')) {
+                // 获取用户特定的项目引用
+                const userProjects = userProjectsRef();
+                if (!userProjects) {
+                    alert('用户未登录，无法删除项目');
+                    return;
+                }
+                
+                // 删除项目
+                userProjects.child(projectId).remove()
+                    .then(() => {
+                        alert('项目已成功删除');
+                        
+                        // 从本地缓存中删除项目
+                        delete allProjects[projectId];
+                        
+                        // 更新项目列表
+                        updateProjectLibraryList();
+                        
+                        // 重新加载象限中的项目点
+                        loadProjects();
+                    })
+                    .catch(error => {
+                        console.error('删除项目失败:', error);
+                        alert('删除项目失败，请重试');
+                    });
+            }
         }
         
         // 显示添加项目表单
@@ -440,11 +935,37 @@
                     const project = projectData;
                     project.id = ref.key;
                     createProjectDot(project);
+                    
+                    // 添加到本地缓存
+                    allProjects[ref.key] = project;
                 })
                 .catch((error) => {
                     console.error('保存项目失败:', error);
                     alert('保存项目失败，请重试');
                 });
+        }
+        
+        // 获取用户项目数据库引用
+        function userProjectsRef() {
+            const user = firebase.auth().currentUser;
+            if (!user) return null;
+            return firebase.database().ref(`users/${user.uid}/projects`);
+        }
+        
+        // 用户认证检查
+        function checkAuth() {
+            return new Promise((resolve, reject) => {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        console.log('用户已登录:', user.uid);
+                        resolve(user);
+                    } else {
+                        console.log('用户未登录，将跳转到登录页面');
+                        window.location.href = '/login.html';
+                        reject(new Error('用户未登录'));
+                    }
+                });
+            });
         }
         
         // 加载所有项目并在相应象限中显示
@@ -477,6 +998,9 @@
             userProjects.once('value', (snapshot) => {
                 const projects = snapshot.val();
                 console.log('已获取项目数据:', projects);
+                
+                // 更新全局项目数据
+                allProjects = projects || {};
                 
                 if (projects) {
                     let projectCount = 0;
