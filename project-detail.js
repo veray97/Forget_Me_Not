@@ -1111,13 +1111,11 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         if (currentLang === 'zh-CN') {
             currentLang = 'en-US';
             langToggle.innerHTML = '<i class="fas fa-globe"></i> EN/中';
-            // 简化语言切换提示
-            dialogInput.value += "\n[已切换到英语]\n";
+            // 移除语言切换提示
         } else {
             currentLang = 'zh-CN';
             langToggle.innerHTML = '<i class="fas fa-globe"></i> 中/EN';
-            // 简化语言切换提示
-            dialogInput.value += "\n[已切换到中文]\n";
+            // 移除语言切换提示
         }
         recognition.lang = currentLang;
     });
@@ -1151,6 +1149,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                 throw new Error("AssemblyAI API 密钥未设置");
             }
             
+            console.log("开始录音，准备建立WebSocket连接");
+            
             // 开始浏览器语音识别（用于即时反馈）
             recognition.start();
             
@@ -1161,6 +1161,7 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             socket.onmessage = (message) => {
                 try {
                     const res = JSON.parse(message.data);
+                    console.log("AssemblyAI WebSocket消息:", res);
                     
                     // 检查是否包含文本转录内容
                     if (res.text) {
@@ -1168,6 +1169,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                         
                         // 如果是最终结果，则更新为最终识别结果
                         if (res.message_type === 'FinalTranscript') {
+                            console.log("收到最终识别结果:", res.text);
+                            
                             // 替换"识别录音中"为最终识别结果
                             const lines = dialogInput.value.split('\n');
                             const lastLineIndex = lines.findIndex(line => line.includes('[识别录音中]'));
@@ -1181,7 +1184,14 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                                 // 如果没有找到"识别录音中"行，直接添加结果
                                 dialogInput.value += '\n' + res.text;
                             }
+                            
+                            // 确保UI刷新并显示结果
+                            dialogInput.scrollTop = dialogInput.scrollHeight;
                         }
+                    } else if (res.message_type === 'SessionBegins') {
+                        console.log("WebSocket会话开始");
+                    } else if (res.message_type === 'SessionTerminated') {
+                        console.log("WebSocket会话终止");
                     }
                 } catch (error) {
                     console.error("处理转录消息失败:", error);
@@ -1209,6 +1219,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                     expires_at: (new Date(Date.now() + 1000 * 60 * 10)).toISOString(), // 10分钟过期
                     language_preference: currentLang.substring(0, 2) // 'zh' 或 'en'
                 }));
+                
+                console.log("WebSocket连接已打开，初始化媒体录制");
                 
                 // 启动媒体录制
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1239,6 +1251,7 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                 };
                 
                 // 设置较小的时间片，提高实时性
+                console.log("启动媒体录制，时间片: 100ms");
                 mediaRecorder.start(100);
                 
                 voiceBtn.classList.add('recording');
@@ -1272,14 +1285,20 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             dialogInput.value += "\n[识别录音中]\n";
         }
         
+        console.log("停止录音，状态更改为'识别录音中'");
+        
         // 如果WebSocket连接存在，发送终止会话的消息并关闭
         if (socket && socket.readyState === WebSocket.OPEN) {
+            console.log("发送终止会话消息到WebSocket");
             socket.send(JSON.stringify({ terminate_session: true }));
             socket.close();
+        } else {
+            console.log("WebSocket连接不存在或未打开，无法发送终止消息");
         }
         
         // 如果媒体录制器存在并处于录制状态
         if (mediaRecorder && mediaRecorder.state === 'recording') {
+            console.log("停止媒体录制");
             mediaRecorder.stop();
             
             // 释放媒体流
@@ -1289,6 +1308,9 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             
             voiceBtn.classList.remove('recording');
             isRecording = false;
+        } else {
+            console.log("媒体录制器不存在或未处于录制状态", 
+                mediaRecorder ? `状态: ${mediaRecorder.state}` : "未初始化");
         }
     }
     
