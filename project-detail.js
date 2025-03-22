@@ -928,13 +928,18 @@ async function showInputDialog() {
         dialogSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
         
         try {
-            // 提取AssemblyAI识别结果
-            let assemblyContent = content;
-            const assemblyMatch = content.match(/\[AssemblyAI 识别结果\]: (.*?)(\n|$)/);
-            if (assemblyMatch && assemblyMatch[1]) {
-                assemblyContent = assemblyMatch[1].trim();
-                console.log("使用AssemblyAI识别结果:", assemblyContent);
-            }
+            // 处理内容，将其拆分为每一行
+            const lines = content.split('\n');
+            
+            // 过滤掉所有包含 [正在录音] 或 [识别录音中] 的行
+            const filteredLines = lines.filter(line => 
+                !line.includes('[正在录音]') && 
+                !line.includes('[识别录音中]')
+            );
+            
+            // 合并剩余的文本作为识别内容
+            const assemblyContent = filteredLines.join('\n').trim();
+            console.log("使用处理后的内容:", assemblyContent);
             
             // 使用 ChatGPT API 解析项目详情
             console.log("开始调用 parseProjectDetails 函数");
@@ -1106,11 +1111,13 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         if (currentLang === 'zh-CN') {
             currentLang = 'en-US';
             langToggle.innerHTML = '<i class="fas fa-globe"></i> EN/中';
-            dialogInput.value += "\n[已切换到英语识别模式]\n";
+            // 简化语言切换提示
+            dialogInput.value += "\n[已切换到英语]\n";
         } else {
             currentLang = 'zh-CN';
             langToggle.innerHTML = '<i class="fas fa-globe"></i> 中/EN';
-            dialogInput.value += "\n[已切换到中文识别模式]\n";
+            // 简化语言切换提示
+            dialogInput.value += "\n[已切换到中文]\n";
         }
         recognition.lang = currentLang;
     });
@@ -1158,28 +1165,21 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                     // 检查是否包含文本转录内容
                     if (res.text) {
                         texts[res.audio_start] = res.text;
-                        let msg = '';
-                        const keys = Object.keys(texts);
-                        keys.sort((a, b) => a - b);
                         
-                        for (const key of keys) {
-                            if (texts[key]) {
-                                msg += ` ${texts[key]}`;
-                            }
-                        }
-                        
-                        // 如果是最终结果，则标记为AssemblyAI识别结果
+                        // 如果是最终结果，则更新为最终识别结果
                         if (res.message_type === 'FinalTranscript') {
-                            dialogInput.value += "\n[AssemblyAI 识别结果]: " + res.text + "\n";
-                        } else {
-                            // 显示实时识别的中间结果
-                            const lastLine = dialogInput.value.split('\n').pop();
-                            if (lastLine.includes('[实时识别中...] ')) {
-                                // 替换最后一行
-                                dialogInput.value = dialogInput.value.substring(0, dialogInput.value.lastIndexOf('\n')) + 
-                                                   '\n[实时识别中...] ' + msg;
+                            // 替换"识别录音中"为最终识别结果
+                            const lines = dialogInput.value.split('\n');
+                            const lastLineIndex = lines.findIndex(line => line.includes('[识别录音中]'));
+                            
+                            if (lastLineIndex !== -1) {
+                                // 移除"识别录音中"行，添加识别结果
+                                lines.splice(lastLineIndex, 1);
+                                lines.push(res.text);
+                                dialogInput.value = lines.join('\n');
                             } else {
-                                dialogInput.value += '\n[实时识别中...] ' + msg;
+                                // 如果没有找到"识别录音中"行，直接添加结果
+                                dialogInput.value += '\n' + res.text;
                             }
                         }
                     }
@@ -1244,8 +1244,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                 voiceBtn.classList.add('recording');
                 isRecording = true;
                 
-                // 显示录音状态
-                dialogInput.value += "\n[开始实时录音...]\n";
+                // 显示录音状态 - 简化为只显示"正在录音"
+                dialogInput.value += "\n[正在录音]\n";
             };
             
         } catch (error) {
@@ -1258,6 +1258,19 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
     function stopRecording() {
         // 停止浏览器语音识别
         recognition.stop();
+        
+        // 停止录音，并更改提示为"识别录音中"
+        const lines = dialogInput.value.split('\n');
+        const lastLineIndex = lines.findIndex(line => line.includes('[正在录音]'));
+        
+        if (lastLineIndex !== -1) {
+            // 替换"正在录音"为"识别录音中"
+            lines.splice(lastLineIndex, 1, '[识别录音中]');
+            dialogInput.value = lines.join('\n');
+        } else {
+            // 如果没有找到"正在录音"行，直接添加"识别录音中"
+            dialogInput.value += "\n[识别录音中]\n";
+        }
         
         // 如果WebSocket连接存在，发送终止会话的消息并关闭
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -1276,26 +1289,13 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             
             voiceBtn.classList.remove('recording');
             isRecording = false;
-            
-            dialogInput.value += "\n[录音已停止]\n";
         }
     }
     
     // 浏览器语音识别结果事件（用于即时反馈）
     recognition.onresult = (event) => {
-        let finalTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-            }
-        }
-        
-        // 只更新确定的识别结果
-        if (finalTranscript) {
-            dialogInput.value += finalTranscript + ' ';
-        }
+        // 禁用浏览器语音识别的实时文本反馈
+        // 我们只使用AssemblyAI的结果
     };
 }
 
