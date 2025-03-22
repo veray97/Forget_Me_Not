@@ -1108,9 +1108,6 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         try {
             // 首先获取临时令牌，避免在客户端暴露API密钥
             const apiKey = ASSEMBLY_API.KEY;
-            if (!apiKey || apiKey === 'your-assemblyai-api-key-here') {
-                throw new Error("AssemblyAI API 密钥未设置");
-            }
             
             console.log("开始录音，准备建立WebSocket连接");
             
@@ -1134,27 +1131,26 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                         if (res.message_type === 'FinalTranscript') {
                             console.log("收到最终识别结果:", res.text);
                             
-                            // 替换"识别录音中"为最终识别结果
-                            const lines = dialogInput.value.split('\n');
-                            const lastLineIndex = lines.findIndex(line => line.includes('[识别录音中]'));
-                            
-                            if (lastLineIndex !== -1) {
-                                // 移除"识别录音中"行，添加识别结果
-                                lines.splice(lastLineIndex, 1);
-                                lines.push(res.text);
-                                dialogInput.value = lines.join('\n');
-                            } else {
-                                // 如果没有找到"识别录音中"行，直接添加结果
-                                dialogInput.value += '\n' + res.text;
+                            // 如果有结果文本，直接替换"正在录音"或添加到输入框
+                            if (res.text && res.text.trim()) {
+                                if (dialogInput.value.includes('[正在录音]')) {
+                                    // 替换"正在录音"为识别结果
+                                    console.log("找到[正在录音]标记，直接替换为识别结果");
+                                    dialogInput.value = dialogInput.value.replace('[正在录音]', res.text);
+                                } else {
+                                    // 如果没有找到"正在录音"标记，直接添加识别结果
+                                    console.log("未找到[正在录音]标记，直接添加识别结果");
+                                    dialogInput.value += '\n' + res.text;
+                                }
+                                
+                                // 确保UI刷新并显示结果
+                                dialogInput.scrollTop = dialogInput.scrollHeight;
                             }
-                            
-                            // 确保UI刷新并显示结果
-                            dialogInput.scrollTop = dialogInput.scrollHeight;
+                        } else if (res.message_type === 'SessionBegins') {
+                            console.log("WebSocket会话开始");
+                        } else if (res.message_type === 'SessionTerminated') {
+                            console.log("WebSocket会话终止");
                         }
-                    } else if (res.message_type === 'SessionBegins') {
-                        console.log("WebSocket会话开始");
-                    } else if (res.message_type === 'SessionTerminated') {
-                        console.log("WebSocket会话终止");
                     }
                 } catch (error) {
                     console.error("处理转录消息失败:", error);
@@ -1234,20 +1230,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         // 停止浏览器语音识别
         recognition.stop();
         
-        // 停止录音，并更改提示为"识别录音中"
-        const lines = dialogInput.value.split('\n');
-        const lastLineIndex = lines.findIndex(line => line.includes('[正在录音]'));
-        
-        if (lastLineIndex !== -1) {
-            // 替换"正在录音"为"识别录音中"
-            lines.splice(lastLineIndex, 1, '[识别录音中]');
-            dialogInput.value = lines.join('\n');
-        } else {
-            // 如果没有找到"正在录音"行，直接添加"识别录音中"
-            dialogInput.value += "\n[识别录音中]\n";
-        }
-        
-        console.log("停止录音，状态更改为'识别录音中'");
+        // 不显示"识别录音中"，如果有"正在录音"标记则保留，等待API直接返回最终结果
+        console.log("停止录音，等待最终识别结果");
         
         // 如果WebSocket连接存在，发送终止会话的消息并关闭
         if (socket && socket.readyState === WebSocket.OPEN) {
