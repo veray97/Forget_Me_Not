@@ -28,6 +28,21 @@ let originalProgressEntries = [];
 // URL参数
 let projectId, quadrantParam;
 
+// API 变量
+let assemblyAiToken;
+
+// 页面加载时初始化
+window.onload = function() {
+    console.log('window.onload 初始化...');
+    // 确保 ASSEMBLY_API 已正确加载
+    if (window.ASSEMBLY_API && window.ASSEMBLY_API.KEY) {
+        assemblyAiToken = window.ASSEMBLY_API.KEY;
+        console.log('AssemblyAI API Token 已加载');
+    } else {
+        console.error('未找到 AssemblyAI API 配置，语音识别功能可能无法使用');
+    }
+};
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
     console.log('页面加载完成，开始初始化...');
@@ -1107,7 +1122,7 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
     async function startRecording() {
         try {
             // 首先获取临时令牌，避免在客户端暴露API密钥
-            const apiKey = ASSEMBLY_API.KEY;
+            const apiKey = assemblyAiToken;
             
             console.log("开始录音，准备建立WebSocket连接");
             
