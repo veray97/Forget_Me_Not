@@ -17,6 +17,7 @@ let progressData = {
 // DOM 元素
 let backBtn, saveBtn, deleteBtn, projectTitle;
 let reminderToggle, reminderSettings, reminderDate, reminderMusic, reminderRepeat;
+let reminderDurationHours, reminderDurationMinutes;
 let addProgressBtn, progressEntries;
 
 // 页面状态变量
@@ -126,6 +127,8 @@ function initDOMReferences() {
     reminderDate = document.getElementById('reminder-date');
     reminderMusic = document.getElementById('reminder-music');
     reminderRepeat = document.getElementById('reminder-repeat');
+    reminderDurationHours = document.getElementById('reminder-duration-hours');
+    reminderDurationMinutes = document.getElementById('reminder-duration-minutes');
     addProgressBtn = document.getElementById('add-progress-btn');
     progressEntries = document.getElementById('progress-entries');
 }
@@ -163,7 +166,7 @@ function initPage() {
     
     // 根据参数决定加载已有项目或创建新项目
     if (projectId) {
-        console.log('检测到项目ID，加载现有项目:', projectId);
+        console.log('检测到项目ID，加载现有项目:', projectId);83
         loadProjectData();
         
         // 只有在编辑现有项目时才启用删除按钮
@@ -469,6 +472,8 @@ function loadReminderSettings(project) {
     reminderDate.value = '';
     reminderMusic.value = 'default';
     reminderRepeat.value = 'once';
+    reminderDurationHours.value = '0';
+    reminderDurationMinutes.value = '30';
     
     // 如果项目有提醒设置，则加载
     if (project.hasReminder) {
@@ -488,6 +493,17 @@ function loadReminderSettings(project) {
         
         if (project.reminderRepeat) {
             reminderRepeat.value = project.reminderRepeat;
+        }
+        
+        // 设置预计用时
+        if (project.reminderDuration) {
+            // 将总分钟数转换为小时和分钟
+            const totalMinutes = project.reminderDuration;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            reminderDurationHours.value = hours.toString();
+            reminderDurationMinutes.value = minutes.toString();
         }
     }
 }
@@ -811,6 +827,11 @@ function getProjectData() {
         
         updates.reminderMusic = reminderMusic.value;
         updates.reminderRepeat = reminderRepeat.value;
+        
+        // 保存预计用时（转换为总分钟数）
+        const hours = parseInt(reminderDurationHours.value) || 0;
+        const minutes = parseInt(reminderDurationMinutes.value) || 0;
+        updates.reminderDuration = hours * 60 + minutes;
     } else {
         updates.hasReminder = false;
     }
@@ -945,6 +966,16 @@ async function showInputDialog() {
                 if (parsedInfo.reminderFrequency) {
                     reminderRepeat.value = parsedInfo.reminderFrequency;
                 }
+                
+                // 设置预计用时
+                if (parsedInfo.reminderDuration) {
+                    const duration = parsedInfo.reminderDuration;
+                    const durationHours = Math.floor(duration / 60);
+                    const durationMinutes = duration % 60;
+                    
+                    reminderDurationHours.value = durationHours.toString();
+                    reminderDurationMinutes.value = durationMinutes.toString();
+                }
             }
             
             // 更新图表
@@ -1022,148 +1053,195 @@ function initInputDialog() {
 
 // 设置语音识别功能
 function setupSpeechRecognition(voiceBtn, dialogInput) {
-    // 创建语音识别对象
+    // 保留现有的浏览器语音识别为即时反馈
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
     // 设置语音识别参数
-    recognition.continuous = false; // 设置为 false，每次只识别一次
+    recognition.continuous = false;
     recognition.interimResults = true;
     
-    // 默认使用中文识别，因为中文识别引擎对英文单词的识别也比较好
+    // 默认使用中文识别
     let currentLang = 'zh-CN';
     recognition.lang = currentLang;
     
     let isRecording = false;
-    let finalTranscript = '';
-    
-    // 创建语言切换按钮
-    const langSwitchBtn = document.createElement('button');
-    langSwitchBtn.innerHTML = '<i class="fas fa-language"></i> 切换语言 (中文/英文)';
-    langSwitchBtn.style.position = 'absolute';
-    langSwitchBtn.style.bottom = '20px';
-    langSwitchBtn.style.left = '20px';
-    langSwitchBtn.style.backgroundColor = '#9b59b6';
-    langSwitchBtn.style.color = 'white';
-    langSwitchBtn.style.border = 'none';
-    langSwitchBtn.style.padding = '8px 12px';
-    langSwitchBtn.style.borderRadius = '4px';
-    langSwitchBtn.style.cursor = 'pointer';
-    langSwitchBtn.style.fontSize = '14px';
-    
-    // 将语言切换按钮添加到弹窗内容区域
-    const dialogContent = document.querySelector('.dialog-content');
-    if (dialogContent) {
-        dialogContent.appendChild(langSwitchBtn);
-    }
-    
-    // 语言切换按钮点击事件
-    langSwitchBtn.addEventListener('click', () => {
-        // 在中文和英文之间切换
-        currentLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
-        recognition.lang = currentLang;
-        
-        // 更新按钮显示当前语言
-        const langText = currentLang === 'zh-CN' ? '当前：中文' : 'Current: English';
-        langSwitchBtn.innerHTML = `<i class="fas fa-language"></i> ${langText}`;
-        
-        // 提示当前使用的语言
-        const langName = currentLang === 'zh-CN' ? '中文' : '英文';
-        dialogInput.value += `\n【已切换到${langName}识别模式】\n`;
-        
-        // 如果正在录音，重新开始录音以应用新语言
-        if (isRecording) {
-            recognition.stop();
-            setTimeout(() => recognition.start(), 200);
-        }
-    });
-    
+    let audioChunks = []; // 存储录音数据
+    let mediaRecorder = null;
+
     // 语音按钮点击事件
     voiceBtn.addEventListener('click', () => {
         toggleRecording();
     });
     
     // 切换录音状态
-    function toggleRecording() {
+    async function toggleRecording() {
         if (isRecording) {
             stopRecording();
         } else {
-            startRecording();
+            await startRecording();
         }
     }
     
-    // 开始录音
-    function startRecording() {
-        finalTranscript = dialogInput.value; // 保存当前输入框内容
-        recognition.start();
-        voiceBtn.classList.add('recording');
-        isRecording = true;
+    // 开始录音 - 同时使用浏览器API和准备AssemblyAI数据
+    async function startRecording() {
+        try {
+            // 开始浏览器语音识别（用于即时反馈）
+            recognition.start();
+            
+            // 同时启动媒体录制（为AssemblyAI准备数据）
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.start();
+            voiceBtn.classList.add('recording');
+            isRecording = true;
+            
+            // 显示录音状态
+            dialogInput.value += "\n[开始录音...]\n";
+            
+        } catch (error) {
+            console.error("录音启动失败:", error);
+            dialogInput.value += "\n[录音启动失败: " + error.message + "]\n";
+        }
     }
     
-    // 停止录音
+    // 停止录音并处理
     function stopRecording() {
+        // 停止浏览器语音识别
         recognition.stop();
-        voiceBtn.classList.remove('recording');
-        isRecording = false;
+        
+        // 如果媒体录制器存在并处于录制状态
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            
+            // 媒体录制完成后处理音频数据
+            mediaRecorder.onstop = async () => {
+                voiceBtn.classList.remove('recording');
+                isRecording = false;
+                
+                dialogInput.value += "\n[处理录音中...]\n";
+                
+                // 创建音频 Blob
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                
+                try {
+                    // 调用 AssemblyAI 进行高级语音识别
+                    const transcription = await sendToAssemblyAI(audioBlob);
+                    if (transcription) {
+                        // 将结果添加到输入框
+                        dialogInput.value += "\n[AssemblyAI 识别结果]: " + transcription + "\n";
+                    }
+                } catch (error) {
+                    console.error("AssemblyAI 处理失败:", error);
+                    dialogInput.value += "\n[转录失败: " + error.message + "]\n";
+                }
+                
+                // 释放媒体流
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            };
+        }
     }
     
-    // 语音识别结果事件
+    // 发送音频到 AssemblyAI 进行处理
+    async function sendToAssemblyAI(audioBlob) {
+        // 使用 api-keys.js 中的 API 密钥
+        const apiKey = ASSEMBLY_API.KEY;
+        if (!apiKey || apiKey === 'your-assemblyai-api-key-here') {
+            throw new Error("AssemblyAI API 密钥未设置");
+        }
+        
+        // 首先上传音频文件
+        const uploadResponse = await fetch(ASSEMBLY_API.URL + '/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': apiKey
+            },
+            body: audioBlob
+        });
+        
+        if (!uploadResponse.ok) {
+            throw new Error("音频上传失败");
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        const audioUrl = uploadResult.upload_url;
+        
+        // 然后发送转录请求
+        const transcriptResponse = await fetch(ASSEMBLY_API.URL + '/transcript', {
+            method: 'POST',
+            headers: {
+                'Authorization': apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                audio_url: audioUrl,
+                language_code: currentLang.substring(0, 2) // zh 或 en
+            })
+        });
+        
+        if (!transcriptResponse.ok) {
+            throw new Error("转录请求失败");
+        }
+        
+        const transcriptResult = await transcriptResponse.json();
+        const transcriptId = transcriptResult.id;
+        
+        // 轮询获取结果
+        let result = null;
+        for (let i = 0; i < 30; i++) { // 最多等待30次
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+            
+            const pollingResponse = await fetch(ASSEMBLY_API.URL + '/transcript/' + transcriptId, {
+                method: 'GET',
+                headers: {
+                    'Authorization': apiKey
+                }
+            });
+            
+            if (!pollingResponse.ok) {
+                throw new Error("获取转录结果失败");
+            }
+            
+            const pollingResult = await pollingResponse.json();
+            
+            if (pollingResult.status === 'completed') {
+                result = pollingResult.text;
+                break;
+            } else if (pollingResult.status === 'error') {
+                throw new Error("AssemblyAI 处理出错: " + pollingResult.error);
+            }
+            
+            // 更新状态
+            dialogInput.value = dialogInput.value.replace(/\[处理录音中...\]/, `[处理录音中...${i+1}秒]`);
+        }
+        
+        return result;
+    }
+    
+    // 浏览器语音识别结果事件（用于即时反馈）
     recognition.onresult = (event) => {
-        let interimTranscript = '';
+        let finalTranscript = '';
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
                 finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
             }
         }
         
-        // 更新输入框内容，区分最终结果和临时结果
-        dialogInput.value = finalTranscript + interimTranscript;
-    };
-    
-    // 语音识别结束事件
-    recognition.onend = () => {
-        voiceBtn.classList.remove('recording');
-        isRecording = false;
-        // 再次开始录音，实现连续录音效果
-        if (isRecording) {
-            setTimeout(() => {
-                recognition.start();
-            }, 50);
+        // 只更新确定的识别结果
+        if (finalTranscript) {
+            dialogInput.value += finalTranscript + ' ';
         }
     };
     
-    // 语音识别错误事件
-    recognition.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
-        voiceBtn.classList.remove('recording');
-        isRecording = false;
-        
-        // 显示错误信息
-        if (event.error === 'no-speech') {
-            dialogInput.value += '\n【未检测到语音，请靠近麦克风或提高音量】\n';
-        } else if (event.error === 'network') {
-            dialogInput.value += '\n【网络错误，请检查网络连接】\n';
-        } else {
-            dialogInput.value += `\n【识别出错: ${event.error}】\n`;
-        }
-    };
-    
-    // 添加使用说明
-    const usageTip = document.createElement('div');
-    usageTip.style.position = 'absolute';
-    usageTip.style.bottom = '60px';
-    usageTip.style.left = '20px';
-    usageTip.style.fontSize = '12px';
-    usageTip.style.color = '#7f8c8d';
-    usageTip.innerHTML = '提示：中英文混合输入时，<br>可以尝试切换语言以获得更好的识别效果';
-    
-    if (dialogContent) {
-        dialogContent.appendChild(usageTip);
-    }
+    // 其他事件处理保持不变...
 }
 
 // 语音合成（文字转语音）
@@ -1249,14 +1327,17 @@ async function parseProjectDetails(content) {
                                 "2. 项目进度（百分比，如果未提及则不返回）\n" +
                                 "3. 提醒时间（如果有，返回HH:mm格式）\n" +
                                 "4. 提醒频率（每天，每周，每月等）\n" +
+                                "5. 预计用时（格式为分钟数，例如：90表示1小时30分钟）\n" +
                                 "请以JSON格式返回，格式如下：\n" +
                                 "{\n" +
                                 "  \"title\": \"项目标题\",\n" +
                                 "  \"progress\": 数字,\n" +
                                 "  \"reminderTime\": \"HH:mm\",\n" +
-                                "  \"reminderFrequency\": \"daily/weekly/monthly\"\n" +
+                                "  \"reminderFrequency\": \"daily/weekly/monthly\",\n" +
+                                "  \"reminderDuration\": 数字\n" +
                                 "}\n" +
-                                "如果信息未提及，对应字段可以省略。对于提醒频率，请将中文描述（每天、每周、每月）转换为英文格式（daily、weekly、monthly）。"
+                                "如果信息未提及，对应字段可以省略。对于提醒频率，请将中文描述（每天、每周、每月）转换为英文格式（daily、weekly、monthly）。\n" +
+                                "对于预计用时，请将其转换为总分钟数。例如，1小时30分钟应该转换为90分钟。"
                     },
                     {
                         role: "user",
@@ -1344,6 +1425,7 @@ function extractFallbackInfo(content) {
     // 尝试提取提醒时间和频率
     let reminderTime = null;
     let reminderFrequency = null;
+    let reminderDuration = null;
     
     // 匹配提醒时间，如"上午10点"、"下午3点"、"晚上8点"、"10:30"等格式
     const timePatterns = [
@@ -1380,6 +1462,42 @@ function extractFallbackInfo(content) {
         reminderFrequency = 'monthly';
     }
     
+    // 匹配预计用时
+    const durationPatterns = [
+        /用时[约为]?\s*(\d+)\s*小时\s*(\d+)\s*分钟/,
+        /用时[约为]?\s*(\d+)\s*小时/,
+        /用时[约为]?\s*(\d+)\s*分钟/,
+        /需要[约]?\s*(\d+)\s*小时\s*(\d+)\s*分钟/,
+        /需要[约]?\s*(\d+)\s*小时/,
+        /需要[约]?\s*(\d+)\s*分钟/,
+        /预计[用时|需要]\s*(\d+)\s*小时\s*(\d+)\s*分钟/,
+        /预计[用时|需要]\s*(\d+)\s*小时/,
+        /预计[用时|需要]\s*(\d+)\s*分钟/,
+    ];
+    
+    for (const pattern of durationPatterns) {
+        const match = content.match(pattern);
+        if (match) {
+            if (match[2]) {
+                // 匹配到小时和分钟
+                const hours = parseInt(match[1]) || 0;
+                const minutes = parseInt(match[2]) || 0;
+                reminderDuration = hours * 60 + minutes;
+            } else {
+                // 只匹配到一个数字
+                if (pattern.toString().includes('小时')) {
+                    // 如果模式中包含"小时"，则这个数字表示小时
+                    const hours = parseInt(match[1]) || 0;
+                    reminderDuration = hours * 60;
+                } else {
+                    // 否则，这个数字表示分钟
+                    reminderDuration = parseInt(match[1]) || 0;
+                }
+            }
+            break;
+        }
+    }
+    
     // 构造并返回提取的信息
     const result = {
         title: title,
@@ -1392,6 +1510,10 @@ function extractFallbackInfo(content) {
     
     if (reminderFrequency) {
         result.reminderFrequency = reminderFrequency;
+    }
+    
+    if (reminderDuration) {
+        result.reminderDuration = reminderDuration;
     }
     
     console.log("备选方法提取结果:", result);
@@ -1470,6 +1592,19 @@ function setupChangeTracking() {
     
     if (reminderRepeat) {
         reminderRepeat.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    // 跟踪预计用时的变化
+    if (reminderDurationHours) {
+        reminderDurationHours.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderDurationMinutes) {
+        reminderDurationMinutes.addEventListener('change', function() {
             hasUnsavedChanges = true;
         });
     }

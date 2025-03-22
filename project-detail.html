@@ -532,6 +532,15 @@
                     <option value="none">无声</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="reminder-duration">预计用时</label>
+                <div class="duration-container">
+                    <input type="number" id="reminder-duration-hours" min="0" max="100" value="0" style="width: 60px;">
+                    <label for="reminder-duration-hours">小时</label>
+                    <input type="number" id="reminder-duration-minutes" min="0" max="59" value="30" style="width: 60px; margin-left: 10px;">
+                    <label for="reminder-duration-minutes">分钟</label>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -551,7 +560,7 @@
             <div class="dialog-title">请输入项目详情</div>
             <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
                 请输入项目内容，系统将自动识别项目标题、进度和提醒设置。<br>
-                例如：「完成数据库设计，进度已完成60%，每周三上午10点提醒我」
+                例如：「完成数据库设计，进度已完成60%，每周三上午10点提醒我，预计用时2小时30分钟」
             </p>
             <textarea class="dialog-input" id="dialog-input" placeholder="在这里输入或说出项目详情，系统将自动分析..."></textarea>
             <div class="dialog-buttons">
