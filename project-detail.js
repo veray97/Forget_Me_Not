@@ -1087,6 +1087,34 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
     let currentLang = 'zh-CN';
     recognition.lang = currentLang;
     
+    // 添加语言切换按钮
+    const voiceBtnContainer = voiceBtn.parentElement;
+    const langToggle = document.createElement('button');
+    langToggle.className = 'lang-toggle-btn';
+    langToggle.innerHTML = '<i class="fas fa-globe"></i> 中/EN';
+    langToggle.style.backgroundColor = '#3498db';
+    langToggle.style.color = 'white';
+    langToggle.style.border = 'none';
+    langToggle.style.padding = '8px';
+    langToggle.style.borderRadius = '4px';
+    langToggle.style.marginRight = '10px';
+    langToggle.style.cursor = 'pointer';
+    voiceBtnContainer.insertBefore(langToggle, voiceBtn);
+    
+    // 语言切换逻辑
+    langToggle.addEventListener('click', () => {
+        if (currentLang === 'zh-CN') {
+            currentLang = 'en-US';
+            langToggle.innerHTML = '<i class="fas fa-globe"></i> EN/中';
+            dialogInput.value += "\n[已切换到英语识别模式]\n";
+        } else {
+            currentLang = 'zh-CN';
+            langToggle.innerHTML = '<i class="fas fa-globe"></i> 中/EN';
+            dialogInput.value += "\n[已切换到中文识别模式]\n";
+        }
+        recognition.lang = currentLang;
+    });
+    
     let isRecording = false;
     let socket = null;
     let mediaRecorder = null;
@@ -1120,7 +1148,7 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             recognition.start();
             
             // 建立与AssemblyAI的WebSocket连接
-            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh`);
+            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh,en`);
             
             // 处理WebSocket消息事件
             socket.onmessage = (message) => {
@@ -1178,7 +1206,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                 // 发送握手消息，包含认证信息
                 socket.send(JSON.stringify({
                     token: apiKey, 
-                    expires_at: (new Date(Date.now() + 1000 * 60 * 10)).toISOString() // 10分钟过期
+                    expires_at: (new Date(Date.now() + 1000 * 60 * 10)).toISOString(), // 10分钟过期
+                    language_preference: currentLang.substring(0, 2) // 'zh' 或 'en'
                 }));
                 
                 // 启动媒体录制
