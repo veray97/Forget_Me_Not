@@ -68,7 +68,7 @@ function verifyAssemblyAIKey() {
     })
     .catch(error => {
         console.error("AssemblyAI API密钥验证失败:", error);
-        alert("语音识别功能可能无法使用，API密钥可能无效。请检查api-keys.js中的设置。");
+        // 删除警告提示，只记录错误日志
     });
 }
 
@@ -94,25 +94,7 @@ function checkStreamingCapability() {
             const message = JSON.parse(event.data);
             console.log("WebSocket测试消息:", message);
             
-            // 检查特定错误消息
-            if (message.error) {
-                // 特殊情况：如果是"This feature is paid-only"错误但API密钥有效，
-                // 说明这是一个免费账户，不支持实时语音识别
-                if (message.error.includes("This feature is paid-only")) {
-                    console.error("免费账户不支持实时语音识别:", message.error);
-                    alert("您的AssemblyAI账户需要升级到付费版本才能使用实时语音识别功能。");
-                } 
-                // 如果是"Not authorized"错误，可能是API密钥问题而不是账户类型问题
-                else if (message.error === "Not authorized") {
-                    console.error("API密钥认证失败:", message.error);
-                    // 这里我们不显示警报，因为这可能是临时性问题，也可能是付费账户但API有其他问题
-                }
-                // 如果上面条件都不满足，可能是付费账户但存在其他错误
-                else {
-                    console.log("收到其他错误消息，但不一定表示账户不支持实时语音识别:", message.error);
-                }
-            }
-            
+            // 直接关闭WebSocket连接
             clearTimeout(connectionTimeout);
             testWs.close();
         };
@@ -124,12 +106,6 @@ function checkStreamingCapability() {
         
         testWs.onclose = (event) => {
             console.log("WebSocket连接关闭:", event);
-            if (event.code === 4003) {
-                console.error("免费账户不支持实时语音识别，需要升级到付费账户");
-                alert("您的AssemblyAI账户需要升级到付费版本才能使用实时语音识别功能。");
-            } else if (event.code === 1000 || event.code === 1001) {
-                console.log("WebSocket连接正常关闭，API密钥可能有效");
-            }
             clearTimeout(connectionTimeout);
         };
     } catch (error) {
