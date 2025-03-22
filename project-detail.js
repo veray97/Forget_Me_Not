@@ -928,18 +928,9 @@ async function showInputDialog() {
         dialogSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
         
         try {
-            // 处理内容，将其拆分为每一行
-            const lines = content.split('\n');
-            
-            // 过滤掉所有包含 [正在录音] 或 [识别录音中] 的行
-            const filteredLines = lines.filter(line => 
-                !line.includes('[正在录音]') && 
-                !line.includes('[识别录音中]')
-            );
-            
-            // 合并剩余的文本作为识别内容
-            const assemblyContent = filteredLines.join('\n').trim();
-            console.log("使用处理后的内容:", assemblyContent);
+            // 处理内容，直接使用原始输入内容
+            const assemblyContent = content.trim();
+            console.log("使用原始内容:", assemblyContent);
             
             // 使用 ChatGPT API 解析项目详情
             console.log("开始调用 parseProjectDetails 函数");
