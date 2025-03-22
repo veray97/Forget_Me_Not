@@ -914,15 +914,23 @@ async function showInputDialog() {
         dialogSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
         
         try {
+            // 提取AssemblyAI识别结果
+            let assemblyContent = content;
+            const assemblyMatch = content.match(/\[AssemblyAI 识别结果\]: (.*?)(\n|$)/);
+            if (assemblyMatch && assemblyMatch[1]) {
+                assemblyContent = assemblyMatch[1].trim();
+                console.log("使用AssemblyAI识别结果:", assemblyContent);
+            }
+            
             // 使用 ChatGPT API 解析项目详情
             console.log("开始调用 parseProjectDetails 函数");
-            const parsedInfo = await parseProjectDetails(content);
+            const parsedInfo = await parseProjectDetails(assemblyContent);
             console.log('解析结果:', parsedInfo);
             
             if (!parsedInfo) {
                 console.warn("解析结果为空，使用默认值");
                 // 使用默认值
-                handleWithDefaultValues(content);
+                handleWithDefaultValues(assemblyContent);
                 return;
             }
             
@@ -930,7 +938,7 @@ async function showInputDialog() {
             inputDialog.style.display = 'none';
             
             // 设置项目内容
-            quill.setText(content);
+            quill.setText(assemblyContent);
             
             // 设置项目标题（如果 API 解析出了标题，否则自动生成一个）
             if (parsedInfo && parsedInfo.title) {
@@ -949,7 +957,7 @@ async function showInputDialog() {
             const progress = parsedInfo && parsedInfo.progress !== undefined ? parsedInfo.progress : 0;
             
             // 创建第一个进度条目
-            createProgressEntry(new Date(), progress, content);
+            createProgressEntry(new Date(), progress, assemblyContent);
             
             // 设置提醒（如果 API 解析出了提醒设置）
             if (parsedInfo && parsedInfo.reminderTime) {
@@ -992,7 +1000,7 @@ async function showInputDialog() {
             dialogSubmit.innerHTML = '添加新项目';
             
             // 如果发生错误，使用默认值继续
-            handleWithDefaultValues(content);
+            handleWithDefaultValues(assemblyContent);
         }
     }
     
