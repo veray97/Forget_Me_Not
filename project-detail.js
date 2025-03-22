@@ -1130,69 +1130,14 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             recognition.start();
             
             // 建立与AssemblyAI的WebSocket连接 - 指定支持中英文，但不显示语言切换按钮
-            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh,en`);
+            const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh,en&auth_key=${apiKey}`;
+            console.log("准备连接WebSocket，使用auth_key参数认证");
             
-            // 处理WebSocket消息事件
-            socket.onmessage = (message) => {
-                try {
-                    const res = JSON.parse(message.data);
-                    console.log("AssemblyAI WebSocket消息:", res);
-                    
-                    // 检查是否包含文本转录内容
-                    if (res.text) {
-                        texts[res.audio_start] = res.text;
-                        
-                        // 如果是最终结果，则更新为最终识别结果
-                        if (res.message_type === 'FinalTranscript') {
-                            console.log("收到最终识别结果:", res.text);
-                            
-                            // 如果有结果文本，直接替换"正在录音"或添加到输入框
-                            if (res.text && res.text.trim()) {
-                                if (dialogInput.value.includes('[正在录音]')) {
-                                    // 替换"正在录音"为识别结果
-                                    console.log("找到[正在录音]标记，直接替换为识别结果");
-                                    dialogInput.value = dialogInput.value.replace('[正在录音]', res.text);
-                                } else {
-                                    // 如果没有找到"正在录音"标记，直接添加识别结果
-                                    console.log("未找到[正在录音]标记，直接添加识别结果");
-                                    dialogInput.value += '\n' + res.text;
-                                }
-                                
-                                // 确保UI刷新并显示结果
-                                dialogInput.scrollTop = dialogInput.scrollHeight;
-                            }
-                        } else if (res.message_type === 'SessionBegins') {
-                            console.log("WebSocket会话开始");
-                        } else if (res.message_type === 'SessionTerminated') {
-                            console.log("WebSocket会话终止");
-                        }
-                    }
-                } catch (error) {
-                    console.error("处理转录消息失败:", error);
-                }
-            };
+            // 使用auth_key参数认证
+            socket = new WebSocket(wsUrl);
             
-            // 处理WebSocket错误
-            socket.onerror = (event) => {
-                console.error("WebSocket错误:", event);
-                socket.close();
-                stopRecording();
-            };
-            
-            // 处理WebSocket关闭
-            socket.onclose = (event) => {
-                console.log("WebSocket连接关闭:", event);
-                socket = null;
-            };
-            
-            // 处理WebSocket打开
+            // WebSocket打开后初始化录音
             socket.onopen = async () => {
-                // 发送握手消息，包含认证信息，不指定语言偏好
-                socket.send(JSON.stringify({
-                    token: apiKey, 
-                    expires_at: (new Date(Date.now() + 1000 * 60 * 10)).toISOString() // 10分钟过期
-                }));
-                
                 console.log("WebSocket连接已打开，初始化媒体录制");
                 
                 // 启动媒体录制
@@ -1234,6 +1179,60 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
                 dialogInput.value += "\n[正在录音]\n";
             };
             
+            // 处理WebSocket消息事件
+            socket.onmessage = (message) => {
+                try {
+                    const res = JSON.parse(message.data);
+                    console.log("AssemblyAI WebSocket消息:", res);
+                    
+                    // 检查是否包含文本转录内容
+                    if (res.text) {
+                        texts[res.audio_start] = res.text;
+                        
+                        // 如果是最终结果，则更新为最终识别结果
+                        if (res.message_type === 'FinalTranscript') {
+                            console.log("收到最终识别结果:", res.text);
+                            
+                            // 如果有结果文本，直接替换"正在录音"或添加到输入框
+                            if (res.text && res.text.trim()) {
+                                if (dialogInput.value.includes('[正在录音]')) {
+                                    // 替换"正在录音"为识别结果
+                                    console.log("找到[正在录音]标记，直接替换为识别结果");
+                                    dialogInput.value = dialogInput.value.replace('[正在录音]', res.text);
+                                } else {
+                                    // 如果没有找到"正在录音"标记，直接添加识别结果
+                                    console.log("未找到[正在录音]标记，直接添加识别结果");
+                                    dialogInput.value += '\n' + res.text;
+                                }
+                                
+                                // 确保UI刷新并显示结果
+                                dialogInput.scrollTop = dialogInput.scrollHeight;
+                            }
+                        } else if (res.message_type === 'SessionBegins') {
+                            console.log("WebSocket会话开始");
+                        } else if (res.message_type === 'SessionTerminated') {
+                            console.log("WebSocket会话终止");
+                        }
+                    } else if (res.error) {
+                        console.error("AssemblyAI错误消息:", res.error);
+                    }
+                } catch (error) {
+                    console.error("处理转录消息失败:", error);
+                }
+            };
+            
+            // 处理WebSocket错误
+            socket.onerror = (event) => {
+                console.error("WebSocket错误:", event);
+                socket.close();
+                stopRecording();
+            };
+            
+            // 处理WebSocket关闭
+            socket.onclose = (event) => {
+                console.log("WebSocket连接关闭:", event);
+                socket = null;
+            };
         } catch (error) {
             console.error("录音启动失败:", error);
             dialogInput.value += "\n[录音启动失败: " + error.message + "]\n";
