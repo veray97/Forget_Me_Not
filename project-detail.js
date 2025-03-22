@@ -1126,8 +1126,8 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
             // 开始浏览器语音识别（用于即时反馈）
             recognition.start();
             
-            // 建立与AssemblyAI的WebSocket连接 - 不指定语言，让API自动识别
-            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000`);
+            // 建立与AssemblyAI的WebSocket连接 - 指定支持中英文，但不显示语言切换按钮
+            socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&language_code=zh,en`);
             
             // 处理WebSocket消息事件
             socket.onmessage = (message) => {
