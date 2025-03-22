@@ -97,6 +97,21 @@
             text-align: right;
         }
         
+        .note-reminder {
+            font-size: 0.8em;
+            color: #e74c3c;
+            text-align: right;
+            margin-top: 5px;
+        }
+        
+        .event-date {
+            font-size: 0.8em;
+            color: #2980b9;
+            text-align: right;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+        
         input, textarea, button {
             width: 100%;
             padding: 10px;
@@ -164,6 +179,48 @@
             font-weight: bold;
         }
         
+        /* 提醒相关样式 */
+        .reminder-container {
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        
+        .reminder-toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .reminder-toggle-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            margin-bottom: 0;
+        }
+        
+        .reminder-toggle-container label {
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        
+        .reminder-option {
+            margin-bottom: 15px;
+        }
+        
+        .reminder-option label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        #reminder-settings {
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -191,8 +248,41 @@
             <input type="text" id="note-title" placeholder="事件标题">
             
             <div class="date-input">
-                <label for="event-date">事件日期</label>
+                <label for="event-date">Hard DDL</label>
                 <input type="date" id="event-date">
+            </div>
+            
+            <div class="reminder-container">
+                <div class="reminder-toggle-container">
+                    <input type="checkbox" id="reminder-toggle">
+                    <label for="reminder-toggle">添加提醒</label>
+                </div>
+                
+                <div id="reminder-settings" style="display: none;">
+                    <div class="date-input">
+                        <label for="reminder-date">提醒时间</label>
+                        <input type="datetime-local" id="reminder-date">
+                    </div>
+                    
+                    <div class="reminder-option">
+                        <label for="reminder-music">提醒铃声</label>
+                        <select id="reminder-music">
+                            <option value="default">默认铃声</option>
+                            <option value="bell">轻柔铃声</option>
+                            <option value="alert">重要提示音</option>
+                        </select>
+                    </div>
+                    
+                    <div class="reminder-option">
+                        <label for="reminder-repeat">重复提醒</label>
+                        <select id="reminder-repeat">
+                            <option value="once">一次</option>
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
             <textarea id="note-content" placeholder="在这里记录事件详情..."></textarea>
@@ -221,6 +311,12 @@
         const saveBtn = document.getElementById('save-btn');
         const newBtn = document.getElementById('new-btn');
         const deleteBtn = document.getElementById('delete-btn');
+        // 添加提醒相关DOM元素
+        const reminderToggle = document.getElementById('reminder-toggle');
+        const reminderSettings = document.getElementById('reminder-settings');
+        const reminderDate = document.getElementById('reminder-date');
+        const reminderMusic = document.getElementById('reminder-music');
+        const reminderRepeat = document.getElementById('reminder-repeat');
 
         // 当前选中的事件
         let currentNoteId = null;
@@ -251,6 +347,9 @@
             saveBtn.addEventListener('click', saveNote);
             newBtn.addEventListener('click', newNote);
             deleteBtn.addEventListener('click', deleteNote);
+            
+            // 初始化提醒功能
+            setupReminderToggle();
         }
 
         // 加载所有事件
@@ -302,11 +401,29 @@
                 eventDateStr = `${eventDate.getFullYear()}-${(eventDate.getMonth() + 1).toString().padStart(2, '0')}-${eventDate.getDate().toString().padStart(2, '0')}`;
             }
             
+            // 格式化提醒信息
+            let reminderInfo = '';
+            if (note.hasReminder && note.reminderTime) {
+                const reminderDate = new Date(note.reminderTime);
+                const reminderDateStr = `${reminderDate.getFullYear()}-${(reminderDate.getMonth() + 1).toString().padStart(2, '0')}-${reminderDate.getDate().toString().padStart(2, '0')} ${reminderDate.getHours().toString().padStart(2, '0')}:${reminderDate.getMinutes().toString().padStart(2, '0')}`;
+                
+                let repeatStr = '';
+                switch (note.reminderRepeat) {
+                    case 'daily': repeatStr = '每天'; break;
+                    case 'weekly': repeatStr = '每周'; break;
+                    case 'monthly': repeatStr = '每月'; break;
+                    default: repeatStr = '一次'; break;
+                }
+                
+                reminderInfo = `<div class="note-reminder"><i class="fas fa-bell"></i> 提醒: ${reminderDateStr} (${repeatStr})</div>`;
+            }
+            
             noteItem.innerHTML = `
                 <div class="note-title">${note.title || '无标题'}</div>
                 <div class="note-preview">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</div>
                 <div class="note-date">创建: ${formattedDate}</div>
-                ${eventDateStr ? `<div class="event-date">事件日期: ${eventDateStr}</div>` : ''}
+                ${eventDateStr ? `<div class="event-date"><strong>Hard DDL:</strong> ${eventDateStr}</div>` : ''}
+                ${reminderInfo}
             `;
             
             noteItem.addEventListener('click', () => {
@@ -319,6 +436,9 @@
                 titleInput.value = note.title || '';
                 contentTextarea.value = note.content || '';
                 eventDateInput.value = note.eventDate || formattedToday;
+                
+                // 加载提醒设置
+                loadReminderSettings(note);
             });
             
             return noteItem;
@@ -348,6 +468,20 @@
                 eventDate: eventDate,
                 timestamp: Date.now()
             };
+            
+            // 保存提醒设置
+            if (reminderToggle.checked) {
+                noteData.hasReminder = true;
+                
+                if (reminderDate.value) {
+                    noteData.reminderTime = new Date(reminderDate.value).getTime();
+                }
+                
+                noteData.reminderMusic = reminderMusic.value;
+                noteData.reminderRepeat = reminderRepeat.value;
+            } else {
+                noteData.hasReminder = false;
+            }
             
             if (currentNoteId) {
                 // 更新现有事件
@@ -410,9 +544,85 @@
             contentTextarea.value = '';
             eventDateInput.value = formattedToday;
             
+            // 重置提醒设置
+            reminderToggle.checked = false;
+            reminderSettings.style.display = 'none';
+            reminderDate.value = '';
+            reminderMusic.value = 'default';
+            reminderRepeat.value = 'once';
+            
             document.querySelectorAll('.note-item').forEach(item => {
                 item.classList.remove('active');
             });
+        }
+
+        // 设置提醒切换事件
+        function setupReminderToggle() {
+            reminderToggle.addEventListener('change', () => {
+                reminderSettings.style.display = reminderToggle.checked ? 'block' : 'none';
+                
+                // 如果开启提醒但未设置日期，则默认设置为明天这个时间
+                if (reminderToggle.checked && !reminderDate.value) {
+                    setDefaultReminderDate();
+                }
+            });
+        }
+        
+        // 设置默认提醒日期为明天
+        function setDefaultReminderDate() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // 格式化为 datetime-local 输入框所需的格式
+            const year = tomorrow.getFullYear();
+            const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const day = String(tomorrow.getDate()).padStart(2, '0');
+            const hours = String(tomorrow.getHours()).padStart(2, '0');
+            const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+            
+            reminderDate.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // 加载提醒设置
+        function loadReminderSettings(note) {
+            // 重置提醒设置
+            reminderToggle.checked = false;
+            reminderSettings.style.display = 'none';
+            reminderDate.value = '';
+            reminderMusic.value = 'default';
+            reminderRepeat.value = 'once';
+            
+            // 如果事件有提醒设置，则加载
+            if (note.hasReminder) {
+                reminderToggle.checked = true;
+                reminderSettings.style.display = 'block';
+                
+                // 设置提醒日期时间
+                if (note.reminderTime) {
+                    const reminderDateTime = new Date(note.reminderTime);
+                    reminderDate.value = formatDateForInput(reminderDateTime);
+                }
+                
+                // 设置提醒音乐和重复类型
+                if (note.reminderMusic) {
+                    reminderMusic.value = note.reminderMusic;
+                }
+                
+                if (note.reminderRepeat) {
+                    reminderRepeat.value = note.reminderRepeat;
+                }
+            }
+        }
+        
+        // 格式化日期为datetime-local输入框格式
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
         }
     </script>
 </body>
