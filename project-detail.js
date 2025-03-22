@@ -954,13 +954,13 @@ async function showInputDialog() {
             if (parsedInfo && parsedInfo.title) {
                 projectTitle.textContent = parsedInfo.title;
             } else {
-                // 如果没有标题，使用当前日期和"新添加项目"作为标题
+                // 如果没有标题，使用当前日期和"新建项目"作为标题
                 const today = new Date();
-                const dateStr = ('0' + (today.getMonth() + 1)).slice(-2) + 
-                               ('0' + today.getDate()).slice(-2) + 
-                               today.getFullYear();
-                const autoTitle = dateStr + "新添加项目";
-                projectTitle.textContent = autoTitle;
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const year = today.getFullYear();
+                const defaultTitle = `${month}${day}${year}&新建项目`;
+                projectTitle.textContent = defaultTitle;
             }
             
             // 设置进度（如果 API 解析出了进度，否则默认为0）
@@ -1023,13 +1023,13 @@ async function showInputDialog() {
         // 设置项目内容
         quill.setText(content);
         
-        // 使用当前日期和"新添加项目"作为标题
+        // 使用当前日期和"新建项目"作为标题
         const today = new Date();
-        const dateStr = ('0' + (today.getMonth() + 1)).slice(-2) + 
-                       ('0' + today.getDate()).slice(-2) + 
-                       today.getFullYear();
-        const autoTitle = dateStr + "新添加项目";
-        projectTitle.textContent = autoTitle;
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const year = today.getFullYear();
+        const defaultTitle = `${month}${day}${year}&新建项目`;
+        projectTitle.textContent = defaultTitle;
         
         // 创建初始进度条目
         createProgressEntry(new Date(), 0, content);
@@ -1237,7 +1237,7 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
         if (socket && socket.readyState === WebSocket.OPEN) {
             console.log("发送终止会话消息到WebSocket");
             socket.send(JSON.stringify({ terminate_session: true }));
-            socket.close();
+            socket.close(); // WebSocket不会立即关闭，可能还会接收到一些消息
         } else {
             console.log("WebSocket连接不存在或未打开，无法发送终止消息");
         }
@@ -1267,23 +1267,16 @@ function setupSpeechRecognition(voiceBtn, dialogInput) {
     };
 }
 
-// 语音合成（文字转语音）
-// 保留但默认不使用
-function speakText(text) {
-    // 默认不启用语音合成
-    const enableSpeech = false;
-    
-    if (enableSpeech && 'speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN'; // 设置为中文
-        speechSynthesis.speak(utterance);
-    }
-}
-
 // 设置默认项目值
 function setDefaultProjectValues() {
-    // 设置默认标题
-    projectTitle.textContent = '';
+    // 设置默认标题 - 使用当前日期格式mmddyyyy&新建项目
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const year = today.getFullYear();
+    const defaultTitle = `${month}${day}${year}&新建项目`;
+    
+    projectTitle.textContent = defaultTitle;
     
     // 创建初始进度条目
     createProgressEntry(new Date(), 0, '');
@@ -1542,7 +1535,6 @@ function extractFallbackInfo(content) {
     console.log("备选方法提取结果:", result);
     return result;
 }
-
 // 设置返回按钮事件
 function setupBackButton() {
     if (backBtn) {
