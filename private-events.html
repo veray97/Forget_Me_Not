@@ -282,6 +282,45 @@
                             <option value="monthly">每月</option>
                         </select>
                     </div>
+                    
+                    <div class="reminder-option">
+                        <label>预计用时</label>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <select id="reminder-duration-hours" style="width: 100%;">
+                                    <option value="0">0 小时</option>
+                                    <option value="1">1 小时</option>
+                                    <option value="2">2 小时</option>
+                                    <option value="3">3 小时</option>
+                                    <option value="4">4 小时</option>
+                                    <option value="5">5 小时</option>
+                                    <option value="6">6 小时</option>
+                                    <option value="7">7 小时</option>
+                                    <option value="8">8 小时</option>
+                                    <option value="9">9 小时</option>
+                                    <option value="10">10 小时</option>
+                                    <option value="11">11 小时</option>
+                                    <option value="12">12 小时</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <select id="reminder-duration-minutes" style="width: 100%;">
+                                    <option value="0">0 分钟</option>
+                                    <option value="5">5 分钟</option>
+                                    <option value="10">10 分钟</option>
+                                    <option value="15">15 分钟</option>
+                                    <option value="20">20 分钟</option>
+                                    <option value="25">25 分钟</option>
+                                    <option value="30" selected>30 分钟</option>
+                                    <option value="35">35 分钟</option>
+                                    <option value="40">40 分钟</option>
+                                    <option value="45">45 分钟</option>
+                                    <option value="50">50 分钟</option>
+                                    <option value="55">55 分钟</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -317,6 +356,8 @@
         const reminderDate = document.getElementById('reminder-date');
         const reminderMusic = document.getElementById('reminder-music');
         const reminderRepeat = document.getElementById('reminder-repeat');
+        const reminderDurationHours = document.getElementById('reminder-duration-hours');
+        const reminderDurationMinutes = document.getElementById('reminder-duration-minutes');
 
         // 当前选中的事件
         let currentNoteId = null;
@@ -415,7 +456,25 @@
                     default: repeatStr = '一次'; break;
                 }
                 
-                reminderInfo = `<div class="note-reminder"><i class="fas fa-bell"></i> 提醒: ${reminderDateStr} (${repeatStr})</div>`;
+                // 添加预计用时
+                let durationStr = '';
+                if (note.reminderDuration) {
+                    const hours = Math.floor(note.reminderDuration / 60);
+                    const minutes = note.reminderDuration % 60;
+                    
+                    if (hours > 0) {
+                        durationStr = `${hours}小时`;
+                    }
+                    if (minutes > 0) {
+                        durationStr += `${minutes}分钟`;
+                    }
+                    
+                    if (durationStr) {
+                        durationStr = ` | 用时: ${durationStr}`;
+                    }
+                }
+                
+                reminderInfo = `<div class="note-reminder"><i class="fas fa-bell"></i> 提醒: ${reminderDateStr} (${repeatStr}${durationStr})</div>`;
             }
             
             noteItem.innerHTML = `
@@ -479,6 +538,11 @@
                 
                 noteData.reminderMusic = reminderMusic.value;
                 noteData.reminderRepeat = reminderRepeat.value;
+                
+                // 保存预计用时（转换为总分钟数）
+                const hours = parseInt(reminderDurationHours.value) || 0;
+                const minutes = parseInt(reminderDurationMinutes.value) || 0;
+                noteData.reminderDuration = hours * 60 + minutes;
             } else {
                 noteData.hasReminder = false;
             }
@@ -550,6 +614,8 @@
             reminderDate.value = '';
             reminderMusic.value = 'default';
             reminderRepeat.value = 'once';
+            reminderDurationHours.value = '0';
+            reminderDurationMinutes.value = '30';
             
             document.querySelectorAll('.note-item').forEach(item => {
                 item.classList.remove('active');
@@ -591,6 +657,8 @@
             reminderDate.value = '';
             reminderMusic.value = 'default';
             reminderRepeat.value = 'once';
+            reminderDurationHours.value = '0';
+            reminderDurationMinutes.value = '30';
             
             // 如果事件有提醒设置，则加载
             if (note.hasReminder) {
@@ -610,6 +678,23 @@
                 
                 if (note.reminderRepeat) {
                     reminderRepeat.value = note.reminderRepeat;
+                }
+                
+                // 设置预计用时
+                if (note.reminderDuration) {
+                    // 将总分钟数转换为小时和分钟
+                    const totalMinutes = note.reminderDuration;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    
+                    reminderDurationHours.value = hours.toString();
+                    
+                    // 找到最接近的分钟选项
+                    const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+                    const closestMinute = minuteOptions.reduce((prev, curr) => {
+                        return (Math.abs(curr - minutes) < Math.abs(prev - minutes) ? curr : prev);
+                    });
+                    reminderDurationMinutes.value = closestMinute.toString();
                 }
             }
         }
