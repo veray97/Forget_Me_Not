@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forget Me Not - 笔记应用</title>
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
     <style>
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -133,6 +135,217 @@
         background-color: #c0392b;
       }
       
+      /* Schedule Button */
+      .schedule-btn {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 15px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 990;
+        transition: background-color 0.2s;
+      }
+      
+      .schedule-btn:hover {
+        background-color: #2980b9;
+      }
+      
+      /* Calendar Modal */
+      .calendar-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .calendar-modal-content {
+        background-color: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 1000px;
+        height: 80%;
+        max-height: 700px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      
+      .calendar-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: #2c3e50;
+        color: white;
+      }
+      
+      .calendar-modal-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      
+      .calendar-modal-close {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+      }
+      
+      .calendar-modal-body {
+        flex: 1;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .calendar-view-selector {
+        display: flex;
+        background-color: #f5f5f7;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 10px 20px;
+      }
+      
+      .calendar-view-btn {
+        background: transparent;
+        border: none;
+        padding: 6px 12px;
+        margin-right: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        color: #555;
+      }
+      
+      .calendar-view-btn.active {
+        background-color: #3498db;
+        color: white;
+      }
+      
+      #modal-calendar-container {
+        flex: 1;
+        overflow: hidden;
+      }
+      
+      /* Color Legend */
+      .calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 20px;
+        background-color: #f5f5f7;
+        border-top: 1px solid #e0e0e0;
+      }
+      
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+      }
+      
+      .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+      }
+      
+      .legend-project {
+        background-color: #3498db;
+      }
+      
+      .legend-private {
+        background-color: #e74c3c;
+      }
+      
+      .legend-deadline {
+        background-color: #e67e22;
+      }
+      
+      /* Event tooltips */
+      .event-tooltip {
+        background-color: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        padding: 8px;
+        font-size: 12px;
+        max-width: 250px;
+        z-index: 1001;
+      }
+      
+      .event-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .event-time {
+        color: #7f8c8d;
+        margin-bottom: 3px;
+      }
+      
+      .event-type {
+        display: inline-block;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-right: 5px;
+      }
+      
+      .event-type-project {
+        background-color: #3498db;
+        color: white;
+      }
+      
+      .event-type-private {
+        background-color: #e74c3c;
+        color: white;
+      }
+      
+      .event-type-hard-deadline {
+        background-color: #e67e22;
+        color: white;
+      }
+      
+      /* Custom styles for month view */
+      .fc-daygrid-event {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      /* Custom styles for week view */
+      .fc-timegrid-event .fc-event-title {
+        font-weight: bold;
+      }
+      
+      .fc-timegrid-event .fc-event-time {
+        font-weight: normal;
+      }
+      
+      /* Responsive styles */
       @media (max-width: 768px) {
         .features-container {
           grid-template-columns: 1fr;
@@ -142,6 +355,18 @@
           position: static;
           justify-content: center;
           margin-top: 20px;
+        }
+        
+        .calendar-modal-content {
+          width: 95%;
+          height: 90%;
+        }
+        
+        .schedule-btn {
+          bottom: 10px;
+          left: 10px;
+          padding: 8px 12px;
+          font-size: 12px;
         }
       }
     </style>
@@ -176,9 +401,49 @@
       </div>
     </div>
     
+    <!-- Schedule Button -->
+    <button class="schedule-btn" id="schedule-btn">
+      <i class="fas fa-calendar"></i> Schedule
+    </button>
+    
+    <!-- Calendar Modal -->
+    <div class="calendar-modal" id="calendar-modal">
+      <div class="calendar-modal-content">
+        <div class="calendar-modal-header">
+          <div class="calendar-modal-title">日程表 | Schedule</div>
+          <button class="calendar-modal-close" id="calendar-close">&times;</button>
+        </div>
+        <div class="calendar-view-selector">
+          <button class="calendar-view-btn active" id="month-view-btn">月视图</button>
+          <button class="calendar-view-btn" id="week-view-btn">周视图</button>
+        </div>
+        <div class="calendar-modal-body">
+          <div id="modal-calendar-container"></div>
+        </div>
+        <div class="calendar-legend">
+          <div class="legend-item">
+            <div class="legend-color legend-project"></div>
+            <span>项目</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color legend-private"></div>
+            <span>私人事件</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color legend-deadline"></div>
+            <span>截止日期</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <footer>
       <p>Forget Me Not &copy; 2023 | 一个简单而强大的笔记应用</p>
     </footer>
+
+    <!-- FullCalendar Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/zh-cn.min.js"></script>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -195,6 +460,9 @@
           if (user) {
             // 用户已登录，显示用户信息
             document.getElementById('user-email').textContent = user.email;
+            
+            // 初始化日历模态框
+            initCalendarModal();
           } else {
             // 用户未登录，重定向到登录页面
             window.location.href = 'login.html';
@@ -214,6 +482,372 @@
             });
         });
       });
+      
+      // Firebase 引用辅助函数
+      function userProjectsRef() {
+        const user = firebase.auth().currentUser;
+        if (user) {
+          return firebase.database().ref(`users/${user.uid}/projects`);
+        }
+        return null;
+      }
+      
+      function userEventsRef() {
+        const user = firebase.auth().currentUser;
+        if (user) {
+          return firebase.database().ref(`users/${user.uid}/events`);
+        }
+        return null;
+      }
+      
+      // 初始化日历模态框
+      function initCalendarModal() {
+        const scheduleBtn = document.getElementById('schedule-btn');
+        const calendarModal = document.getElementById('calendar-modal');
+        const calendarClose = document.getElementById('calendar-close');
+        const monthViewBtn = document.getElementById('month-view-btn');
+        const weekViewBtn = document.getElementById('week-view-btn');
+        
+        let calendar;
+        let currentView = 'dayGridMonth';
+        
+        // 打开日历模态框
+        scheduleBtn.addEventListener('click', () => {
+          calendarModal.style.display = 'flex';
+          
+          // 如果日历尚未初始化，则初始化
+          if (!calendar) {
+            calendar = initCalendar();
+          } else {
+            // 刷新事件
+            loadAllEvents(calendar);
+          }
+        });
+        
+        // 关闭日历模态框
+        calendarClose.addEventListener('click', () => {
+          calendarModal.style.display = 'none';
+        });
+        
+        // 点击模态框外部关闭
+        calendarModal.addEventListener('click', (e) => {
+          if (e.target === calendarModal) {
+            calendarModal.style.display = 'none';
+          }
+        });
+        
+        // 月视图按钮
+        monthViewBtn.addEventListener('click', () => {
+          if (currentView !== 'dayGridMonth') {
+            currentView = 'dayGridMonth';
+            calendar.changeView(currentView);
+            
+            // 更新按钮样式
+            monthViewBtn.classList.add('active');
+            weekViewBtn.classList.remove('active');
+            
+            // 重新加载事件以应用不同的渲染风格
+            loadAllEvents(calendar);
+          }
+        });
+        
+        // 周视图按钮
+        weekViewBtn.addEventListener('click', () => {
+          if (currentView !== 'timeGridWeek') {
+            currentView = 'timeGridWeek';
+            calendar.changeView(currentView);
+            
+            // 更新按钮样式
+            weekViewBtn.classList.add('active');
+            monthViewBtn.classList.remove('active');
+            
+            // 重新加载事件以应用不同的渲染风格
+            loadAllEvents(calendar);
+          }
+        });
+        
+        return {
+          calendar,
+          modal: calendarModal
+        };
+      }
+      
+      // 初始化日历
+      function initCalendar() {
+        const calendarEl = document.getElementById('modal-calendar-container');
+        
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          locale: 'zh-cn',
+          height: '100%',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+          },
+          dayMaxEventRows: true,
+          views: {
+            dayGridMonth: {
+              dayMaxEventRows: 4,
+              eventDisplay: 'block',
+              displayEventTime: false
+            },
+            timeGridWeek: {
+              slotMinTime: '07:00:00',
+              slotMaxTime: '22:00:00',
+              nowIndicator: true,
+              eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }
+            }
+          },
+          eventContent: function(info) {
+            const view = info.view.type;
+            
+            // 月视图中仅显示彩色条和标题
+            if (view === 'dayGridMonth') {
+              const eventEl = document.createElement('div');
+              eventEl.classList.add('month-view-event');
+              eventEl.style.display = 'flex';
+              eventEl.style.alignItems = 'center';
+              eventEl.style.gap = '4px';
+              
+              const colorDot = document.createElement('div');
+              colorDot.style.width = '8px';
+              colorDot.style.height = '8px';
+              colorDot.style.borderRadius = '50%';
+              colorDot.style.backgroundColor = info.event.backgroundColor;
+              
+              const title = document.createElement('div');
+              title.innerText = info.event.title;
+              title.style.overflow = 'hidden';
+              title.style.textOverflow = 'ellipsis';
+              title.style.whiteSpace = 'nowrap';
+              title.style.fontSize = '0.8em';
+              
+              eventEl.appendChild(colorDot);
+              eventEl.appendChild(title);
+              
+              return { domNodes: [eventEl] };
+            }
+            
+            // 周视图中显示更详细信息
+            if (view === 'timeGridWeek') {
+              const eventEl = document.createElement('div');
+              eventEl.style.padding = '4px';
+              
+              const title = document.createElement('div');
+              title.innerHTML = `<strong>${info.event.title}</strong>`;
+              title.style.fontSize = '0.85em';
+              title.style.marginBottom = '2px';
+              
+              const time = document.createElement('div');
+              time.innerHTML = info.timeText;
+              time.style.fontSize = '0.75em';
+              time.style.color = '#ffffff80';
+              
+              eventEl.appendChild(title);
+              eventEl.appendChild(time);
+              
+              return { domNodes: [eventEl] };
+            }
+            
+            return null;
+          },
+          eventDidMount: function(info) {
+            // 事件悬停提示
+            const tooltip = document.createElement('div');
+            tooltip.className = 'event-tooltip';
+            
+            let content = `<div class="event-title">${info.event.title}</div>`;
+            
+            if (info.event.extendedProps.type) {
+              const typeLabel = info.event.extendedProps.type === 'project' ? '项目' : 
+                              (info.event.extendedProps.type === 'private' ? '私人事件' : '截止日期');
+              const typeClass = info.event.extendedProps.type === 'project' ? 'event-type-project' : 
+                              (info.event.extendedProps.type === 'private' ? 'event-type-private' : 'event-type-hard-deadline');
+              
+              content += `<div><span class="event-type ${typeClass}">${typeLabel}</span></div>`;
+            }
+            
+            if (info.event.extendedProps.description) {
+              content += `<div>${info.event.extendedProps.description}</div>`;
+            }
+            
+            if (info.event.start) {
+              let dateStr = info.event.start.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              });
+              content += `<div class="event-time">开始: ${dateStr}</div>`;
+            }
+            
+            if (info.event.end) {
+              let dateStr = info.event.end.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              });
+              content += `<div class="event-time">结束: ${dateStr}</div>`;
+            }
+            
+            tooltip.innerHTML = content;
+            tooltip.style.position = 'absolute';
+            tooltip.style.display = 'none';
+            
+            document.body.appendChild(tooltip);
+            
+            info.el.addEventListener('mouseover', function() {
+              const rect = info.el.getBoundingClientRect();
+              tooltip.style.left = rect.left + window.pageXOffset + 'px';
+              tooltip.style.top = rect.bottom + window.pageYOffset + 'px';
+              tooltip.style.display = 'block';
+            });
+            
+            info.el.addEventListener('mouseout', function() {
+              tooltip.style.display = 'none';
+            });
+          }
+        });
+        
+        // 渲染日历
+        calendar.render();
+        
+        // 加载项目和私人事件
+        loadAllEvents(calendar);
+        
+        return calendar;
+      }
+      
+      // 加载所有事件到日历
+      function loadAllEvents(calendar) {
+        // 清空现有事件
+        calendar.removeAllEvents();
+        
+        // 加载项目事件
+        loadProjectEvents(calendar);
+        
+        // 加载私人事件
+        loadPrivateEvents(calendar);
+      }
+      
+      // 加载项目事件到日历
+      function loadProjectEvents(calendar) {
+        const projectsRef = userProjectsRef();
+        if (!projectsRef) return;
+        
+        projectsRef.once('value', (snapshot) => {
+          snapshot.forEach((childSnapshot) => {
+            const project = childSnapshot.val();
+            
+            // 添加项目提醒
+            if (project.hasReminder && project.reminderTime) {
+              const reminderDate = new Date(project.reminderTime);
+              
+              // 计算结束时间
+              let endDate = new Date(reminderDate);
+              if (project.reminderDuration) {
+                // 将持续时间（分钟）添加到开始时间
+                endDate.setMinutes(endDate.getMinutes() + project.reminderDuration);
+              } else {
+                // 如果没有指定持续时间，默认为30分钟
+                endDate.setMinutes(endDate.getMinutes() + 30);
+              }
+              
+              calendar.addEvent({
+                title: project.title || '无标题项目',
+                start: reminderDate,
+                end: endDate,
+                color: '#3498db', // 蓝色表示项目提醒
+                extendedProps: {
+                  type: 'project',
+                  description: '项目提醒',
+                  duration: project.reminderDuration || 30
+                }
+              });
+            }
+            
+            // 添加项目Hard DDL
+            if (project.hasHardDeadline && project.hardDeadlineTime) {
+              const deadlineDate = new Date(project.hardDeadlineTime);
+              
+              calendar.addEvent({
+                title: `${project.title || '无标题项目'} (截止)`,
+                start: deadlineDate,
+                allDay: true,
+                color: '#e67e22', // 橙色表示Hard DDL
+                extendedProps: {
+                  type: 'hard-deadline',
+                  description: '项目截止日期',
+                  importance: project.hardDeadlineImportance || '中等'
+                }
+              });
+            }
+          });
+        });
+      }
+      
+      // 加载私人事件到日历
+      function loadPrivateEvents(calendar) {
+        const eventsRef = userEventsRef();
+        if (!eventsRef) return;
+        
+        eventsRef.once('value', (snapshot) => {
+          snapshot.forEach((childSnapshot) => {
+            const event = childSnapshot.val();
+            
+            // 添加私人事件提醒
+            if (event.hasReminder && event.reminderTime) {
+              const reminderDate = new Date(event.reminderTime);
+              
+              // 计算结束时间
+              let endDate = new Date(reminderDate);
+              if (event.reminderDuration) {
+                // 将持续时间（分钟）添加到开始时间
+                endDate.setMinutes(endDate.getMinutes() + event.reminderDuration);
+              } else {
+                // 如果没有指定持续时间，默认为30分钟
+                endDate.setMinutes(endDate.getMinutes() + 30);
+              }
+              
+              calendar.addEvent({
+                title: event.title || '无标题事件',
+                start: reminderDate,
+                end: endDate,
+                color: '#e74c3c', // 红色表示私人事件
+                extendedProps: {
+                  type: 'private',
+                  description: '私人事件提醒',
+                  duration: event.reminderDuration || 30
+                }
+              });
+            }
+            
+            // 添加事件Hard DDL
+            if (event.eventDate) {
+              const eventDate = new Date(event.eventDate);
+              
+              calendar.addEvent({
+                title: `${event.title || '无标题事件'} (截止)`,
+                start: eventDate,
+                allDay: true,
+                color: '#e74c3c', // 红色表示私人事件
+                extendedProps: {
+                  type: 'private',
+                  description: '私人事件截止'
+                }
+              });
+            }
+          });
+        });
+      }
     </script>
   </body>
 </html>

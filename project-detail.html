@@ -16,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="firebase-config.js"></script>
-    
+  
     <!-- API 密钥文件 (不会上传到 GitHub) -->
     <script src="api-keys.js"></script>
     
@@ -262,6 +262,26 @@
             font-size: 14px;
         }
         
+        .hard-deadline-section {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .hard-deadline-toggle {
+            margin-bottom: 15px;
+        }
+        
+        .hard-deadline-settings {
+            display: none;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
         .reminder-section {
             background-color: #fff;
             border-radius: 8px;
@@ -436,28 +456,6 @@
             }
         }
         
-        .note-editor {
-            font-size: 28px;
-            color: #2c3e50;
-            margin: 0;
-            padding: 10px 0;
-            text-align: center;
-            flex-grow: 1;
-            cursor: pointer;
-            border-bottom: 1px dashed #ccc;
-            position: relative;
-        }
-        
-        .note-editor:hover::after {
-            content: '';
-            display: none;
-        }
-        
-        .note-editor:empty::before {
-            content: attr(placeholder);
-            color: #aaa;
-        }
-        
         .project-title-input {
             font-size: 28px;
             color: #2c3e50;
@@ -476,7 +474,7 @@
         <button class="back-btn" id="back-btn">
             <i class="fas fa-arrow-left"></i> 返回象限
         </button>
-        <h1 class="note-editor" id="project-title" placeholder="项目标题">项目标题</h1>
+        <h1 class="project-title" id="project-title" placeholder="项目标题">项目标题</h1>
         <div>
             <button class="save-btn" id="save-btn">
                 <i class="fas fa-save"></i> 保存
@@ -502,7 +500,33 @@
             <!-- 进度条目将在这里动态添加 -->
         </div>
     </div>
-    
+
+    <div class="hard-deadline-section">
+        <h2>Hard DDL</h2>
+        <div class="hard-deadline-toggle">
+            <input type="checkbox" id="hard-deadline-toggle">
+            <label for="hard-deadline-toggle">为此项目设置 Hard DDL</label>
+        </div>
+        <div class="hard-deadline-settings" id="hard-deadline-settings">
+            <div class="form-group">
+                <label for="hard-deadline-date">截止日期</label>
+                <input type="datetime-local" id="hard-deadline-date">
+                <div class="hard-deadline-display-container" style="margin-top: 5px; font-size: 14px;">
+                    格式化显示: <span class="hard-deadline-display" style="font-weight: bold;"></span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="hard-deadline-importance">重要程度</label>
+                <select id="hard-deadline-importance">
+                    <option value="low">较低</option>
+                    <option value="medium">一般</option>
+                    <option value="high">较高</option>
+                    <option value="critical">严重</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <div class="reminder-section">
         <h2>提醒设置</h2>
         <div class="reminder-toggle">
@@ -574,6 +598,7 @@
     </div>
     
     <!-- 项目详情页JavaScript -->
+    <script src="voice-recognition.js"></script>
     <script src="project-detail.js"></script>
 </body>
 </html>

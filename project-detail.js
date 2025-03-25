@@ -16,6 +16,7 @@ let progressData = {
 
 // DOM 元素
 let backBtn, saveBtn, deleteBtn, projectTitle;
+let hardDeadlineToggle, hardDeadlineSettings, hardDeadlineDate, hardDeadlineImportance;
 let reminderToggle, reminderSettings, reminderDate, reminderMusic, reminderRepeat;
 let reminderDurationHours, reminderDurationMinutes;
 let addProgressBtn, progressEntries;
@@ -28,90 +29,16 @@ let originalProgressEntries = [];
 // URL参数
 let projectId, quadrantParam;
 
-// API 变量
-let assemblyAiToken;
-
 // 页面加载时初始化
 window.onload = function() {
     console.log('window.onload 初始化...');
-    // 确保 ASSEMBLY_API 已正确加载
-    if (window.ASSEMBLY_API && window.ASSEMBLY_API.KEY) {
-        assemblyAiToken = window.ASSEMBLY_API.KEY;
-        console.log('AssemblyAI API Token 已加载');
-        // 验证API密钥是否有效
-        verifyAssemblyAIKey();
+    // 检查语音识别模块是否可用
+    if (window.VoiceRecognition) {
+        console.log('找到语音识别模块');
     } else {
-        console.error('未找到 AssemblyAI API 配置，语音识别功能可能无法使用');
+        console.error('未找到语音识别模块，语音识别功能可能无法使用');
     }
 };
-
-// 验证AssemblyAI API密钥是否有效
-function verifyAssemblyAIKey() {
-    console.log("正在验证AssemblyAI API密钥...");
-    fetch("https://api.assemblyai.com/v2/account", {
-        method: "GET",
-        headers: {
-            "Authorization": assemblyAiToken
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            console.log("AssemblyAI API密钥验证成功！");
-            
-            // 再验证是否为付费账户（检查是否可以使用实时语音识别）
-            checkStreamingCapability();
-            
-            return response.json();
-        } else {
-            throw new Error(`API请求失败，状态码: ${response.status}`);
-        }
-    })
-    .catch(error => {
-        console.error("AssemblyAI API密钥验证失败:", error);
-        // 删除警告提示，只记录错误日志
-    });
-}
-
-// 检查AssemblyAI账户是否支持实时语音识别
-function checkStreamingCapability() {
-    console.log("正在检查实时语音识别功能...");
-    
-    // 尝试建立WebSocket连接，测试实时语音识别功能
-    try {
-        const testWs = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&auth_key=${assemblyAiToken}`);
-        
-        // 设置超时，如果5秒内没有收到错误消息，则认为连接成功
-        const connectionTimeout = setTimeout(() => {
-            console.log("实时语音识别功能检查超时，假定支持");
-            testWs.close();
-        }, 5000);
-        
-        testWs.onopen = () => {
-            console.log("WebSocket连接成功打开，看起来API密钥是有效的");
-        };
-        
-        testWs.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            console.log("WebSocket测试消息:", message);
-            
-            // 直接关闭WebSocket连接
-            clearTimeout(connectionTimeout);
-            testWs.close();
-        };
-        
-        testWs.onerror = (error) => {
-            console.error("WebSocket连接错误:", error);
-            clearTimeout(connectionTimeout);
-        };
-        
-        testWs.onclose = (event) => {
-            console.log("WebSocket连接关闭:", event);
-            clearTimeout(connectionTimeout);
-        };
-    } catch (error) {
-        console.error("检查实时语音识别功能时出错:", error);
-    }
-}
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -207,6 +134,10 @@ function initDOMReferences() {
     saveBtn = document.getElementById('save-btn');
     deleteBtn = document.getElementById('delete-btn');
     projectTitle = document.getElementById('project-title');
+    hardDeadlineToggle = document.getElementById('hard-deadline-toggle');
+    hardDeadlineSettings = document.getElementById('hard-deadline-settings');
+    hardDeadlineDate = document.getElementById('hard-deadline-date');
+    hardDeadlineImportance = document.getElementById('hard-deadline-importance');
     reminderToggle = document.getElementById('reminder-toggle');
     reminderSettings = document.getElementById('reminder-settings');
     reminderDate = document.getElementById('reminder-date');
@@ -249,9 +180,42 @@ function initPage() {
     console.log('开始初始化页面...');
     console.log('参数状态:', { projectId, quadrantParam });
     
+    // 已在页面加载时初始化编辑器，此处不需要重复初始化
+    // initQuillEditor();
+    
+    // 初始化图表
+    initChart();
+    
+    // 初始化语音输入和弹窗对话框
+    initInputDialog();
+    
+    // 设置提醒切换事件
+    setupReminderToggle();
+    
+    // 设置Hard DDL开关
+    setupHardDeadlineToggle();
+    
+    // 设置项目标题编辑功能
+    setupTitleEditing();
+    
+    // 设置添加进度条目事件
+    setupAddProgressEntry();
+    
+    // 设置返回按钮事件
+    setupBackButton();
+    
+    // 设置修改跟踪
+    setupChangeTracking();
+    
+    // 默认提醒日期
+    setDefaultReminderDate();
+    
+    // 默认Hard DDL日期
+    setDefaultHardDDLDate();
+    
     // 根据参数决定加载已有项目或创建新项目
     if (projectId) {
-        console.log('检测到项目ID，加载现有项目:', projectId);83
+        console.log('检测到项目ID，加载现有项目:', projectId);
         loadProjectData();
         
         // 只有在编辑现有项目时才启用删除按钮
@@ -273,23 +237,8 @@ function initPage() {
         window.location.href = '/time-quadrant.html';
     }
     
-    // 设置提醒切换事件
-    setupReminderToggle();
-    
-    // 设置项目标题编辑功能
-    setupTitleEditing();
-    
-    // 设置添加进度条目事件
-    setupAddProgressEntry();
-    
-    // 初始化语音输入和弹窗对话框
-    initInputDialog();
-    
-    // 设置返回按钮事件
-    setupBackButton();
-    
-    // 设置修改跟踪
-    setupChangeTracking();
+    // 开发时调试Firebase数据库连接
+    debugFirebaseConnection();
 }
 
 // 设置提醒切换事件
@@ -317,6 +266,28 @@ function setDefaultReminderDate() {
     const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
     
     reminderDate.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// 设置默认Hard DDL日期为一周后
+function setDefaultHardDDLDate() {
+    // 如果没有启用Hard DDL，不需要设置默认日期
+    if (!hardDeadlineToggle.checked) {
+        return;
+    }
+    
+    // 如果已经有设置日期，也不需要设置默认日期
+    if (hardDeadlineDate.value) {
+        return;
+    }
+    
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    // 格式化为 datetime-local 输入框所需的格式
+    hardDeadlineDate.value = formatDateForInput(nextWeek);
+    
+    // 更新格式化显示
+    updateHardDDLDisplay();
 }
 
 // 设置项目标题编辑功能
@@ -446,6 +417,9 @@ function loadProjectData() {
         
         // 设置项目内容
         setProjectContent(project.content);
+        
+        // 加载Hard DDL设置
+        loadHardDeadlineSettings(project);
         
         // 加载提醒设置
         loadReminderSettings(project);
@@ -602,6 +576,17 @@ function formatDateForInput(date) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     
     return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// 格式化Hard DDL日期为mm/dd/yyyy hh:mins格式
+function formatDateForHardDDL(date) {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
 }
 
 // 更新图表
@@ -921,6 +906,19 @@ function getProjectData() {
         updates.hasReminder = false;
     }
     
+    // 保存Hard DDL设置
+    if (hardDeadlineToggle.checked) {
+        updates.hasHardDeadline = true;
+        
+        if (hardDeadlineDate.value) {
+            updates.hardDeadlineTime = new Date(hardDeadlineDate.value).getTime();
+        }
+        
+        updates.hardDeadlineImportance = hardDeadlineImportance.value;
+    } else {
+        updates.hasHardDeadline = false;
+    }
+    
     // 创建进度历史对象，保持向后兼容
     updates.progressHistory = {};
     progressEntries.forEach(entry => {
@@ -941,6 +939,45 @@ function showSavingState() {
 function restoreSaveButton() {
     saveBtn.disabled = false;
     saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+}
+
+// 初始化语音输入和弹窗对话框
+function initInputDialog() {
+    console.log("初始化语音输入和对话框");
+    const voiceBtn = document.getElementById('voice-btn');
+    const dialogInput = document.getElementById('dialog-input');
+    
+    if (!voiceBtn) {
+        console.error("未找到语音按钮元素");
+        return;
+    }
+    
+    if (!dialogInput) {
+        console.error("未找到对话框输入元素");
+        return;
+    }
+    
+    // 使用语音识别模块来初始化语音输入
+    if (window.VoiceRecognition) {
+        console.log("找到语音识别模块，准备设置...");
+        // 直接设置语音按钮，让voice-recognition.js处理所有权限相关的逻辑
+        window.VoiceRecognition.setup(voiceBtn, dialogInput, {
+            onTranscriptionComplete: (text) => {
+                console.log("【回调函数】转录完成，文本长度:", text ? text.length : 0);
+                console.log("【回调函数】转录文本内容:", text ? (text.substring(0, 50) + (text.length > 50 ? "..." : "")) : "无内容");
+            },
+            onRecordingStart: () => {
+                console.log("【回调函数】开始录音");
+            },
+            onRecordingStop: () => {
+                console.log("【回调函数】停止录音");
+            }
+        });
+    } else {
+        // 模块未加载，隐藏语音按钮
+        voiceBtn.style.display = 'none';
+        console.warn('未找到语音识别模块，禁用语音输入功能');
+    }
 }
 
 // 显示输入对话框
@@ -1127,302 +1164,284 @@ async function showInputDialog() {
     }
 }
 
-// 初始化语音输入和弹窗对话框
-function initInputDialog() {
-    console.log("初始化语音输入和对话框");
-    const voiceBtn = document.getElementById('voice-btn');
-    const dialogInput = document.getElementById('dialog-input');
-    
-    if (!voiceBtn) {
-        console.error("未找到语音按钮元素");
-        return;
-    }
-    
-    if (!dialogInput) {
-        console.error("未找到对话框输入元素");
-        return;
-    }
-    
-    // 检查浏览器是否支持语音识别
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        console.log("浏览器支持语音识别，设置语音功能");
-        setupSpeechRecognition(voiceBtn, dialogInput);
-    } else {
-        // 浏览器不支持语音识别
-        voiceBtn.style.display = 'none';
-        console.warn('当前浏览器不支持语音识别功能');
+// 设置返回按钮事件
+function setupBackButton() {
+    if (backBtn) {
+        // 移除默认的onclick属性（如果存在）
+        backBtn.removeAttribute('onclick');
+        
+        // 添加新的点击事件监听器
+        backBtn.addEventListener('click', function(e) {
+            // 如果有未保存的更改，询问用户是否保存
+            if (hasUnsavedChanges) {
+                e.preventDefault(); // 阻止默认行为
+                
+                const userChoice = confirm('您有未保存的更改，是否保存后再返回？\n\n- 点击"确定"保存并返回\n- 点击"取消"不保存直接返回');
+                
+                if (userChoice) {
+                    // 用户选择保存更改
+                    saveProject(function() {
+                        // 保存完成后返回象限页面
+                        window.location.href = '/time-quadrant.html';
+                    });
+                } else {
+                    // 用户选择不保存直接返回
+                    window.location.href = '/time-quadrant.html';
+                }
+            } else {
+                // 没有更改，直接返回
+                window.location.href = '/time-quadrant.html';
+            }
+        });
     }
 }
 
-// 设置语音识别功能
-function setupSpeechRecognition(voiceBtn, dialogInput) {
-    // 保留现有的浏览器语音识别作为主要识别方式
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+// 设置修改跟踪
+function setupChangeTracking() {
+    // 跟踪Quill编辑器的内容变化
+    if (quill) {
+        quill.on('text-change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
     
-    // 设置语音识别参数
-    recognition.continuous = false;
-    recognition.interimResults = true;
+    // 跟踪项目标题变化
+    if (projectTitle) {
+        const originalTitle = projectTitle.textContent;
+        projectTitle.addEventListener('DOMSubtreeModified', function() {
+            if (projectTitle.textContent !== originalTitle) {
+                hasUnsavedChanges = true;
+            }
+        });
+    }
     
-    // 默认使用中文识别
-    let currentLang = 'zh-CN';
-    recognition.lang = currentLang;
+    // 跟踪提醒设置变化
+    if (reminderToggle) {
+        reminderToggle.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
     
-    let isRecording = false;
-    let mediaRecorder = null;
-    let audioChunks = []; // 存储录音数据
-    let recordingBlob = null; // 存储完整录音的Blob对象
+    if (reminderDate) {
+        reminderDate.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
     
-    // 语音按钮点击事件
-    voiceBtn.addEventListener('click', () => {
-        toggleRecording();
+    if (reminderMusic) {
+        reminderMusic.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderRepeat) {
+        reminderRepeat.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    // 跟踪预计用时的变化
+    if (reminderDurationHours) {
+        reminderDurationHours.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    if (reminderDurationMinutes) {
+        reminderDurationMinutes.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    // 在MutationObserver上监听进度条目的变化
+    const progressObserver = new MutationObserver(function() {
+        hasUnsavedChanges = true;
     });
     
-    // 切换录音状态
-    async function toggleRecording() {
-        if (isRecording) {
-            stopRecording();
-        } else {
-            await startRecording();
-        }
+    if (progressEntries) {
+        progressObserver.observe(progressEntries, { 
+            childList: true, 
+            subtree: true,
+            attributes: true,
+            characterData: true
+        });
     }
     
-    // 开始录音 - 使用浏览器内置录音功能
-    async function startRecording() {
-        try {
-            console.log("开始录音，使用浏览器内置语音识别和录音功能");
-            
-            // 初始化媒体录制，保存录音供后续上传到AssemblyAI处理
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-            
-            // 收集录音数据
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
-            };
-            
-            // 录音完成时处理
-            mediaRecorder.onstop = async () => {
-                // 创建完整的录音Blob
-                recordingBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                console.log("录音完成，录音大小:", recordingBlob.size, "字节");
-                
-                // 上传录音到AssemblyAI进行处理
-                if (recordingBlob.size > 0) {
-                    dialogInput.value = dialogInput.value.replace('[正在录音]', '[正在处理录音...]');
-                    uploadAndTranscribe(recordingBlob);
-                }
-            };
-            
-            // 开始录音
-            console.log("启动媒体录制");
-            mediaRecorder.start();
-            
-            // 同时启动浏览器内置语音识别，用于实时反馈
-            recognition.start();
-            
-            // 更新UI状态
-            voiceBtn.classList.add('recording');
-            isRecording = true;
-            
-            // 显示录音状态
-            dialogInput.value += "\n[正在录音]\n";
-            
-        } catch (error) {
-            console.error("录音启动失败:", error);
-            dialogInput.value += "\n[录音启动失败: " + error.message + "]\n";
+    // 监听进度条目的输入变化
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('progress-entry-input') || 
+            e.target.classList.contains('progress-entry-progress') ||
+            e.target.classList.contains('progress-entry-date')) {
+            hasUnsavedChanges = true;
         }
-    }
-    
-    // 停止录音
-    function stopRecording() {
-        // 停止浏览器语音识别
-        recognition.stop();
-        
-        // 更新UI状态
-        voiceBtn.classList.remove('recording');
-        isRecording = false;
-        
-        console.log("停止录音，准备处理");
-        
-        // 如果媒体录制器存在并处于录制状态
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            console.log("停止媒体录制");
-            mediaRecorder.stop();
-            
-            // 释放媒体流
-            if (mediaRecorder.stream) {
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
-        } else {
-            console.log("媒体录制器不存在或未处于录制状态");
-            
-            // 清理UI显示
-            if (dialogInput.value.includes('[正在录音]')) {
-                dialogInput.value = dialogInput.value.replace('[正在录音]', '');
-            }
-        }
-    }
-    
-    // 上传音频文件到AssemblyAI并进行转录
-    async function uploadAndTranscribe(audioBlob) {
-        try {
-            console.log("开始上传录音文件到AssemblyAI...");
-            
-            // 第1步：上传音频文件
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'recording.webm');
-            
-            const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': assemblyAiToken
-                },
-                body: audioBlob
-            });
-            
-            if (!uploadResponse.ok) {
-                throw new Error(`上传失败，状态码: ${uploadResponse.status}`);
-            }
-            
-            const uploadResult = await uploadResponse.json();
-            const audioUrl = uploadResult.upload_url;
-            console.log("音频文件上传成功，URL:", audioUrl);
-            
-            // 第2步：请求转录
-            const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
-                method: 'POST',
-                headers: {
-                    'Authorization': assemblyAiToken,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    audio_url: audioUrl,
-                    language_code: "zh" // 指定中文，如果需要的话
-                })
-            });
-            
-            if (!transcriptResponse.ok) {
-                throw new Error(`转录请求失败，状态码: ${transcriptResponse.status}`);
-            }
-            
-            const transcriptResult = await transcriptResponse.json();
-            const transcriptId = transcriptResult.id;
-            console.log("转录请求已提交，ID:", transcriptId);
-            
-            // 第3步：轮询检查转录结果
-            checkTranscriptionStatus(transcriptId);
-            
-        } catch (error) {
-            console.error("转录处理失败:", error);
-            dialogInput.value = dialogInput.value.replace('[正在处理录音...]', `[转录失败: ${error.message}]`);
-        }
-    }
-    
-    // 轮询检查转录状态
-    async function checkTranscriptionStatus(transcriptId) {
-        try {
-            console.log("检查转录状态，ID:", transcriptId);
-            
-            const pollingInterval = 1000; // 1秒检查一次
-            const maxAttempts = 60; // 最多尝试60次，即等待约1分钟
-            let attempts = 0;
-            
-            const checkStatus = async () => {
-                attempts++;
-                
-                const statusResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': assemblyAiToken
-                    }
-                });
-                
-                if (!statusResponse.ok) {
-                    throw new Error(`获取转录状态失败，状态码: ${statusResponse.status}`);
-                }
-                
-                const statusResult = await statusResponse.json();
-                console.log("转录状态:", statusResult.status);
-                
-                if (statusResult.status === 'completed') {
-                    // 转录成功，显示结果
-                    console.log("转录完成:", statusResult.text);
-                    if (dialogInput.value.includes('[正在处理录音...]')) {
-                        dialogInput.value = dialogInput.value.replace('[正在处理录音...]', statusResult.text || '[没有识别到文字]');
-                    } else {
-                        dialogInput.value += '\n' + (statusResult.text || '[没有识别到文字]');
-                    }
-                    dialogInput.scrollTop = dialogInput.scrollHeight;
-                } else if (statusResult.status === 'error') {
-                    // 转录出错
-                    console.error("转录出错:", statusResult.error);
-                    dialogInput.value = dialogInput.value.replace('[正在处理录音...]', `[转录出错: ${statusResult.error}]`);
-                } else if (attempts < maxAttempts) {
-                    // 继续轮询
-                    setTimeout(checkStatus, pollingInterval);
-                } else {
-                    // 超过最大尝试次数
-                    console.warn("转录超时");
-                    dialogInput.value = dialogInput.value.replace('[正在处理录音...]', '[转录超时，请稍后再试]');
-                }
-            };
-            
-            // 开始轮询
-            setTimeout(checkStatus, pollingInterval);
-            
-        } catch (error) {
-            console.error("检查转录状态失败:", error);
-            dialogInput.value = dialogInput.value.replace('[正在处理录音...]', `[检查转录状态失败: ${error.message}]`);
-        }
-    }
-    
-    // 浏览器语音识别结果事件（用于即时反馈）
-    recognition.onresult = (event) => {
-        const result = event.results[0];
-        const transcript = result[0].transcript;
-        
-        // 显示浏览器识别的实时结果
-        if (isRecording && dialogInput.value.includes('[正在录音]')) {
-            const tempDisplay = dialogInput.value.replace('[正在录音]', `[正在录音] ${transcript}`);
-            dialogInput.value = tempDisplay;
-            dialogInput.scrollTop = dialogInput.scrollHeight;
-        }
-    };
-    
-    // 语音识别结束事件
-    recognition.onend = () => {
-        console.log("浏览器语音识别结束");
-        // 如果仍在录音状态，可以重新启动浏览器识别
-        if (isRecording) {
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log("无法重新启动浏览器语音识别:", e);
-            }
-        }
-    };
+    });
 }
 
-// 设置默认项目值
-function setDefaultProjectValues() {
-    // 设置默认标题 - 使用当前日期格式mmddyyyy&新建项目
-    const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const year = today.getFullYear();
-    const defaultTitle = `${month}${day}${year}&新建项目`;
+// 删除项目
+function deleteProject() {
+    console.log('deleteProject 函数已触发');
     
-    projectTitle.textContent = defaultTitle;
+    // 如果有未保存的更改，先询问用户是否保存
+    if (hasUnsavedChanges) {
+        const saveChoice = confirm('您有未保存的更改，删除前是否需要保存？\n\n- 点击"确定"先保存再删除\n- 点击"取消"直接删除不保存');
+        
+        if (saveChoice) {
+            // 先保存再删除
+            saveProject(function() {
+                // 保存完成后执行删除
+                confirmAndDeleteProject();
+            });
+            return;
+        }
+    }
     
-    // 创建初始进度条目
-    createProgressEntry(new Date(), 0, '');
+    // 没有未保存的更改或用户选择不保存，直接执行删除确认
+    confirmAndDeleteProject();
+}
+
+// 确认并删除项目
+function confirmAndDeleteProject() {
+    // 确认删除
+    if (!confirm('确定要删除此项目吗？此操作不可撤销。')) {
+        return;
+    }
     
-    // 初始化图表
-    initChart();
+    // 检查用户是否已登录
+    const user = firebase.auth().currentUser;
+    
+    if (!user) {
+        console.log('同步检查未发现用户，尝试异步检查...');
+        
+        // 如果同步检查未发现用户，尝试使用异步方法
+        firebase.auth().onAuthStateChanged(function(asyncUser) {
+            if (asyncUser) {
+                console.log('异步检查发现用户，继续删除...');
+                // 找到用户后，继续删除过程
+                continueProjectDelete(asyncUser);
+            } else {
+                console.error('用户未登录，无法删除项目');
+                alert('用户未登录，无法删除项目，请重新登录');
+                window.location.href = '/login.html';
+            }
+        });
+    } else {
+        // 用户已登录，直接继续
+        console.log('同步检查发现用户，继续删除...');
+        continueProjectDelete(user);
+    }
+}
+
+// 继续删除项目（在确认用户已登录后）
+function continueProjectDelete(user) {
+    console.log('继续删除项目，用户ID:', user.uid);
+    
+    // 获取用户特定的项目引用
+    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
+    
+    // 显示删除中状态
+    showDeletingState();
+    
+    // 从Firebase删除
+    if (projectId) {
+        // 删除项目
+        console.log('删除项目:', projectId);
+        userProjects.child(projectId).remove()
+            .then(() => {
+                console.log('项目删除成功');
+                alert('项目已成功删除');
+                // 删除成功后返回象限页面
+                window.location.href = '/time-quadrant.html';
+            })
+            .catch((error) => {
+                console.error('删除项目失败:', error);
+                alert('删除项目失败: ' + error.message);
+                restoreDeleteButton();
+            });
+    } else {
+        // 没有项目ID，不能删除
+        console.error('无法删除：项目ID不存在');
+        alert('无法删除：项目ID不存在');
+        restoreDeleteButton();
+    }
+}
+
+// 显示删除中状态
+function showDeletingState() {
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+}
+
+// 恢复删除按钮状态
+function restoreDeleteButton() {
+    deleteBtn.disabled = false;
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 删除';
+}
+
+// 设置Hard DDL开关
+function setupHardDeadlineToggle() {
+    hardDeadlineToggle.addEventListener('change', () => {
+        hardDeadlineSettings.style.display = hardDeadlineToggle.checked ? 'block' : 'none';
+        
+        // 如果勾选且未设置默认日期，设置为当前时间的一周后
+        if (hardDeadlineToggle.checked && !hardDeadlineDate.value) {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            hardDeadlineDate.value = formatDateForInput(nextWeek);
+            
+            // 更新格式化显示
+            updateHardDDLDisplay();
+        }
+    });
+    
+    // 监听日期变化，更新格式化显示
+    hardDeadlineDate.addEventListener('change', updateHardDDLDisplay);
+}
+
+// 更新Hard DDL格式化显示
+function updateHardDDLDisplay() {
+    const deadlineDateDisplay = document.querySelector('.hard-deadline-display');
+    if (deadlineDateDisplay && hardDeadlineDate.value) {
+        const dateObj = new Date(hardDeadlineDate.value);
+        deadlineDateDisplay.textContent = formatDateForHardDDL(dateObj);
+    }
+}
+
+// 加载Hard DDL设置
+function loadHardDeadlineSettings(project) {
+    // 重置Hard DDL设置
+    hardDeadlineToggle.checked = false;
+    hardDeadlineSettings.style.display = 'none';
+    hardDeadlineDate.value = '';
+    hardDeadlineImportance.value = 'medium';
+    
+    // 如果项目有Hard DDL设置，则加载
+    if (project.hasHardDeadline) {
+        hardDeadlineToggle.checked = true;
+        hardDeadlineSettings.style.display = 'block';
+        
+        // 设置截止日期时间
+        if (project.hardDeadlineTime) {
+            const deadlineDateTime = new Date(project.hardDeadlineTime);
+            
+            // 设置日期选择器的值
+            hardDeadlineDate.value = formatDateForInput(deadlineDateTime);
+            
+            // 为了显示，还可以格式化为指定格式 (mm/dd/yyyy hh:mins)
+            const formattedDeadline = formatDateForHardDDL(deadlineDateTime);
+            console.log('Hard DDL formatted date:', formattedDeadline);
+            
+            // 如果页面上有需要显示格式化日期的元素，可以在这里设置
+            const deadlineDateDisplay = document.querySelector('.hard-deadline-display');
+            if (deadlineDateDisplay) {
+                deadlineDateDisplay.textContent = formattedDeadline;
+            }
+        }
+        
+        // 设置重要程度
+        if (project.hardDeadlineImportance) {
+            hardDeadlineImportance.value = project.hardDeadlineImportance;
+        }
+    }
 }
 
 // 调试用函数：检查Firebase连接
@@ -1674,216 +1693,4 @@ function extractFallbackInfo(content) {
     
     console.log("备选方法提取结果:", result);
     return result;
-}
-// 设置返回按钮事件
-function setupBackButton() {
-    if (backBtn) {
-        // 移除默认的onclick属性（如果存在）
-        backBtn.removeAttribute('onclick');
-        
-        // 添加新的点击事件监听器
-        backBtn.addEventListener('click', function(e) {
-            // 如果有未保存的更改，询问用户是否保存
-            if (hasUnsavedChanges) {
-                e.preventDefault(); // 阻止默认行为
-                
-                const userChoice = confirm('您有未保存的更改，是否保存后再返回？\n\n- 点击"确定"保存并返回\n- 点击"取消"不保存直接返回');
-                
-                if (userChoice) {
-                    // 用户选择保存更改
-                    saveProject(function() {
-                        // 保存完成后返回象限页面
-                        window.location.href = '/time-quadrant.html';
-                    });
-                } else {
-                    // 用户选择不保存直接返回
-                    window.location.href = '/time-quadrant.html';
-                }
-            } else {
-                // 没有更改，直接返回
-                window.location.href = '/time-quadrant.html';
-            }
-        });
-    }
-}
-
-// 设置修改跟踪
-function setupChangeTracking() {
-    // 跟踪Quill编辑器的内容变化
-    if (quill) {
-        quill.on('text-change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    // 跟踪项目标题变化
-    if (projectTitle) {
-        const originalTitle = projectTitle.textContent;
-        projectTitle.addEventListener('DOMSubtreeModified', function() {
-            if (projectTitle.textContent !== originalTitle) {
-                hasUnsavedChanges = true;
-            }
-        });
-    }
-    
-    // 跟踪提醒设置变化
-    if (reminderToggle) {
-        reminderToggle.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    if (reminderDate) {
-        reminderDate.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    if (reminderMusic) {
-        reminderMusic.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    if (reminderRepeat) {
-        reminderRepeat.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    // 跟踪预计用时的变化
-    if (reminderDurationHours) {
-        reminderDurationHours.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    if (reminderDurationMinutes) {
-        reminderDurationMinutes.addEventListener('change', function() {
-            hasUnsavedChanges = true;
-        });
-    }
-    
-    // 在MutationObserver上监听进度条目的变化
-    const progressObserver = new MutationObserver(function() {
-        hasUnsavedChanges = true;
-    });
-    
-    if (progressEntries) {
-        progressObserver.observe(progressEntries, { 
-            childList: true, 
-            subtree: true,
-            attributes: true,
-            characterData: true
-        });
-    }
-    
-    // 监听进度条目的输入变化
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('progress-entry-input') || 
-            e.target.classList.contains('progress-entry-progress') ||
-            e.target.classList.contains('progress-entry-date')) {
-            hasUnsavedChanges = true;
-        }
-    });
-}
-
-// 删除项目
-function deleteProject() {
-    console.log('deleteProject 函数已触发');
-    
-    // 如果有未保存的更改，先询问用户是否保存
-    if (hasUnsavedChanges) {
-        const saveChoice = confirm('您有未保存的更改，删除前是否需要保存？\n\n- 点击"确定"先保存再删除\n- 点击"取消"直接删除不保存');
-        
-        if (saveChoice) {
-            // 先保存再删除
-            saveProject(function() {
-                // 保存完成后执行删除
-                confirmAndDeleteProject();
-            });
-            return;
-        }
-    }
-    
-    // 没有未保存的更改或用户选择不保存，直接执行删除确认
-    confirmAndDeleteProject();
-}
-
-// 确认并删除项目
-function confirmAndDeleteProject() {
-    // 确认删除
-    if (!confirm('确定要删除此项目吗？此操作不可撤销。')) {
-        return;
-    }
-    
-    // 检查用户是否已登录
-    const user = firebase.auth().currentUser;
-    
-    if (!user) {
-        console.log('同步检查未发现用户，尝试异步检查...');
-        
-        // 如果同步检查未发现用户，尝试使用异步方法
-        firebase.auth().onAuthStateChanged(function(asyncUser) {
-            if (asyncUser) {
-                console.log('异步检查发现用户，继续删除...');
-                // 找到用户后，继续删除过程
-                continueProjectDelete(asyncUser);
-            } else {
-                console.error('用户未登录，无法删除项目');
-                alert('用户未登录，无法删除项目，请重新登录');
-                window.location.href = '/login.html';
-            }
-        });
-    } else {
-        // 用户已登录，直接继续
-        console.log('同步检查发现用户，继续删除...');
-        continueProjectDelete(user);
-    }
-}
-
-// 继续删除项目（在确认用户已登录后）
-function continueProjectDelete(user) {
-    console.log('继续删除项目，用户ID:', user.uid);
-    
-    // 获取用户特定的项目引用
-    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
-    
-    // 显示删除中状态
-    showDeletingState();
-    
-    // 从Firebase删除
-    if (projectId) {
-        // 删除项目
-        console.log('删除项目:', projectId);
-        userProjects.child(projectId).remove()
-            .then(() => {
-                console.log('项目删除成功');
-                alert('项目已成功删除');
-                // 删除成功后返回象限页面
-                window.location.href = '/time-quadrant.html';
-            })
-            .catch((error) => {
-                console.error('删除项目失败:', error);
-                alert('删除项目失败: ' + error.message);
-                restoreDeleteButton();
-            });
-    } else {
-        // 没有项目ID，不能删除
-        console.error('无法删除：项目ID不存在');
-        alert('无法删除：项目ID不存在');
-        restoreDeleteButton();
-    }
-}
-
-// 显示删除中状态
-function showDeletingState() {
-    deleteBtn.disabled = true;
-    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
-}
-
-// 恢复删除按钮状态
-function restoreDeleteButton() {
-    deleteBtn.disabled = false;
-    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 删除';
 }
