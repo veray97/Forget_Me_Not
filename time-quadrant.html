@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forget Me Not - 时间管理象限</title>
+    <title>Forget Me Not - Time Management Quadrant</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -494,11 +494,11 @@
 <body>
     <header>
         <button class="back-btn" onclick="window.location.href='index.html'">
-            <i class="fas fa-arrow-left"></i> 返回主页
+            <i class="fas fa-arrow-left"></i> Back to Home
         </button>
-        <h1>时间管理象限</h1>
+        <h1>Time Management Quadrant</h1>
         <div class="project-library-btn" id="project-library-btn">
-            <i class="fas fa-list-check"></i> 项目集
+            <i class="fas fa-list-check"></i> Project Lists
         </div>
     </header>
     
@@ -506,18 +506,18 @@
     <div class="project-library-modal" id="project-library-modal">
         <div class="project-library-content">
             <div class="library-header">
-                <div class="library-title">项目集</div>
+                <div class="library-title">Project Lists</div>
                 <button class="close-btn" id="close-library">&times;</button>
             </div>
             <div class="library-actions">
                 <button class="delete-selected-btn" id="delete-selected-btn">
-                    <i class="fas fa-trash"></i> 删除选中
+                    <i class="fas fa-trash"></i> Delete Selected
                 </button>
                 <button class="select-all-btn" id="select-all-btn">
-                    <i class="fas fa-check-square"></i> 全选
+                    <i class="fas fa-check-square"></i> Select All
                 </button>
                 <button class="deselect-all-btn" id="deselect-all-btn">
-                    <i class="fas fa-square"></i> 取消全选
+                    <i class="fas fa-square"></i> Deselect All
                 </button>
             </div>
             <div class="library-projects-container">
@@ -542,28 +542,28 @@
     
     <div class="quadrant-container">
         <div class="quadrant quadrant-1" data-quadrant="1">
-            <div class="quadrant-title">重要不紧急</div>
+            <div class="quadrant-title">Important but not urgent</div>
             <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
         <div class="quadrant quadrant-2" data-quadrant="2">
-            <div class="quadrant-title">重要且紧急</div>
+            <div class="quadrant-title">Important and urgent</div>
             <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
         <div class="quadrant quadrant-3" data-quadrant="3">
-            <div class="quadrant-title">不重要不紧急</div>
+            <div class="quadrant-title">Not important and not urgent</div>
             <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
         <div class="quadrant quadrant-4" data-quadrant="4">
-            <div class="quadrant-title">紧急不重要</div>
+            <div class="quadrant-title">Urgent but not important</div>
             <div class="add-btn">
                 <i class="fas fa-plus"></i>
             </div>
@@ -574,19 +574,19 @@
     <div class="popup-form" id="popup-form">
         <div class="popup-content">
             <div class="popup-header">
-                <div class="popup-title">添加新项目</div>
+                <div class="popup-title">Add New Project</div>
                 <button class="close-btn" id="close-popup">&times;</button>
             </div>
             <div class="form-group">
-                <label for="project-title">项目标题</label>
-                <input type="text" id="project-title" placeholder="输入项目标题">
+                <label for="project-title">Project Title</label>
+                <input type="text" id="project-title" placeholder="Enter project title">
             </div>
             <div class="form-group">
-                <label for="project-content">项目内容</label>
-                <textarea id="project-content" placeholder="在这里记录项目详情..."></textarea>
+                <label for="project-content">Project Content</label>
+                <textarea id="project-content" placeholder="Here record the project details..."></textarea>
             </div>
             <input type="hidden" id="project-quadrant">
-            <button class="submit-btn" id="submit-project">保存项目</button>
+            <button class="submit-btn" id="submit-project">Save Project</button>
         </div>
     </div>
     

@@ -419,6 +419,109 @@ function setupTitleEditing() {
     });
 }
 
+// 初始化项目进度图表
+function initChart() {
+    const chartCanvas = document.getElementById('progress-chart');
+    if (!chartCanvas) {
+        console.error('未找到图表canvas元素');
+        return;
+    }
+    
+    // 初始化图表数据
+    progressData = {
+        labels: [],
+        datasets: [{
+            label: '项目进度',
+            data: [],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    };
+    
+    // 创建图表
+    progressChart = new Chart(chartCanvas, {
+        type: 'line',
+        data: progressData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: '完成百分比 (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '日期'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `进度: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 更新图表数据
+function updateChart() {
+    // 确保图表已初始化
+    if (!progressChart) {
+        console.warn('图表未初始化，尝试初始化');
+        initChart();
+        if (!progressChart) {
+            console.error('无法初始化图表');
+            return;
+        }
+    }
+    
+    // 收集进度数据
+    const entries = collectProgressEntries();
+    if (entries.length === 0) {
+        console.log('没有进度数据，不更新图表');
+        return;
+    }
+    
+    // 按日期排序（升序）
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // 准备图表数据
+    const labels = [];
+    const data = [];
+    
+    entries.forEach(entry => {
+        // 格式化日期标签
+        const date = new Date(entry.date);
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+        
+        labels.push(formattedDate);
+        data.push(entry.progress);
+    });
+    
+    // 更新图表数据
+    progressChart.data.labels = labels;
+    progressChart.data.datasets[0].data = data;
+    
+    // 更新图表
+    progressChart.update();
+}
+
 // 更新项目标题
 function updateProjectTitle(value) {
     if (value.trim()) {
@@ -1147,6 +1250,128 @@ function getProjectData() {
     return updates;
 }
 
+// 保存项目
+function saveProject() {
+    console.log('开始保存项目...');
+    
+    // 获取项目数据
+    const projectData = getProjectData();
+    if (!projectData) {
+        console.error('获取项目数据失败，取消保存操作');
+        return;
+    }
+    
+    // 显示保存中状态
+    const saveBtn = document.getElementById('save-btn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '保存中...';
+    saveBtn.disabled = true;
+    
+    try {
+        // 获取当前用户
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            console.error('用户未登录，无法保存项目');
+            alert('保存失败：您尚未登录或登录已过期，请重新登录');
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        // 获取用户项目引用
+        const projectsRef = userProjectsRef();
+        if (!projectsRef) {
+            console.error('获取项目引用失败');
+            alert('保存失败：无法连接到数据库');
+            return;
+        }
+        
+        // 使用现有项目ID或创建新ID
+        const currentProjectId = projectId || projectsRef.push().key;
+        
+        // 保存项目数据
+        projectsRef.child(currentProjectId).update(projectData)
+            .then(() => {
+                console.log('项目保存成功:', currentProjectId);
+                
+                // 如果是新项目，更新URL以反映项目ID
+                if (!projectId) {
+                    // 更新页面URL，保留当前象限参数
+                    const newUrl = `project-detail.html?id=${currentProjectId}${quadrantParam ? `&quadrant=${quadrantParam}` : ''}`;
+                    window.history.replaceState(null, '', newUrl);
+                    
+                    // 更新全局projectId变量
+                    projectId = currentProjectId;
+                    
+                    // 显示删除按钮
+                    const deleteBtn = document.getElementById('delete-btn');
+                    if (deleteBtn) {
+                        deleteBtn.style.display = 'inline-block';
+                        deleteBtn.addEventListener('click', deleteProject);
+                    }
+                }
+                
+                // 更新最后保存状态
+                lastSavedState = JSON.stringify(projectData);
+                
+                // 显示成功消息和动画
+                showSuccessAnimation();
+            })
+            .catch(error => {
+                console.error('保存项目时出错:', error);
+                alert(`保存失败: ${error.message || '未知错误'}`);
+            })
+            .finally(() => {
+                // 恢复保存按钮状态
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
+            });
+    } catch (error) {
+        console.error('保存过程中发生异常:', error);
+        alert(`保存过程中发生错误: ${error.message || '未知错误'}`);
+        
+        // 恢复保存按钮状态
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+// 显示保存成功动画
+function showSuccessAnimation() {
+    // 检查是否已存在动画元素，如果存在则先移除
+    const existingAnimation = document.getElementById('save-success-animation');
+    if (existingAnimation) {
+        document.body.removeChild(existingAnimation);
+    }
+    
+    // 创建动画容器
+    const animationContainer = document.createElement('div');
+    animationContainer.id = 'save-success-animation';
+    animationContainer.style.position = 'fixed';
+    animationContainer.style.top = '50%';
+    animationContainer.style.left = '50%';
+    animationContainer.style.transform = 'translate(-50%, -50%)';
+    animationContainer.style.zIndex = '9999';
+    animationContainer.style.backgroundColor = 'transparent';
+    
+    // 创建GIF图像
+    const gifImage = document.createElement('img');
+    gifImage.src = 'mario coin brick.gif'; // 本地GIF文件
+    gifImage.alt = '保存成功';
+    gifImage.style.maxWidth = '150px';
+    gifImage.style.maxHeight = '150px';
+    
+    // 只添加GIF到页面，不添加文字
+    animationContainer.appendChild(gifImage);
+    document.body.appendChild(animationContainer);
+    
+    // 3秒后移除动画
+    setTimeout(() => {
+        if (animationContainer.parentNode) {
+            document.body.removeChild(animationContainer);
+        }
+    }, 3000);
+}
+
 // 初始化语音输入和弹窗对话框
 function initInputDialog() {
     console.log("初始化语音输入和对话框");
@@ -1513,10 +1738,56 @@ function deleteProject() {
     function processDelete() {
         // 如果有未保存的更改，先保存再删除
         if (hasUnsavedChanges) {
-            saveProject(function() {
-                // 保存完成后执行删除
-                continueProjectDelete();
-            });
+            // 执行保存，然后在保存成功的回调中执行删除
+            console.log('有未保存的更改，先保存项目...');
+            
+            // 获取项目数据
+            const projectData = getProjectData();
+            if (!projectData) {
+                console.error('获取项目数据失败，取消删除操作');
+                return;
+            }
+            
+            // 显示保存中状态
+            const saveBtn = document.getElementById('save-btn');
+            const originalSaveText = saveBtn.textContent;
+            saveBtn.textContent = '保存中...';
+            saveBtn.disabled = true;
+            
+            try {
+                // 保存项目数据
+                const projectsRef = userProjectsRef();
+                if (!projectsRef) {
+                    console.error('获取项目引用失败');
+                    alert('保存失败：无法连接到数据库');
+                    saveBtn.textContent = originalSaveText;
+                    saveBtn.disabled = false;
+                    return;
+                }
+                
+                projectsRef.child(projectId).update(projectData)
+                    .then(() => {
+                        console.log('项目保存成功，准备删除...');
+                        // 恢复保存按钮状态
+                        saveBtn.textContent = originalSaveText;
+                        saveBtn.disabled = false;
+                        // 保存成功后执行删除
+                        continueProjectDelete();
+                    })
+                    .catch(error => {
+                        console.error('保存项目时出错:', error);
+                        alert(`保存失败: ${error.message || '未知错误'}`);
+                        // 恢复保存按钮状态
+                        saveBtn.textContent = originalSaveText;
+                        saveBtn.disabled = false;
+                    });
+            } catch (error) {
+                console.error('保存过程中发生异常:', error);
+                alert(`保存过程中发生错误: ${error.message || '未知错误'}`);
+                // 恢复保存按钮状态
+                saveBtn.textContent = originalSaveText;
+                saveBtn.disabled = false;
+            }
         } else {
             // 没有未保存的更改，直接执行删除
             continueProjectDelete();

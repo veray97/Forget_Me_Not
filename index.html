@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forget Me Not - 笔记应用</title>
+    <title>Forget Me Not - Time Management</title>
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
     <style>
@@ -115,6 +115,64 @@
         gap: 10px;
       }
       
+      .settings-btn-left {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .settings-btn-left:hover {
+        background-color: #2980b9;
+      }
+      
+      .settings-dropdown-left {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 100;
+      }
+      
+      .settings-dropdown-content-left {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: calc(100% + 5px);
+        background-color: white;
+        min-width: 160px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      
+      .settings-dropdown-left.active .settings-dropdown-content-left {
+        display: block;
+      }
+      
+      .settings-dropdown-content-left a {
+        color: #333;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .settings-dropdown-content-left a:hover {
+        background-color: #f1f1f1;
+      }
+      
       .user-email {
         font-size: 14px;
         color: #7f8c8d;
@@ -133,61 +191,6 @@
       
       .logout-btn:hover {
         background-color: #c0392b;
-      }
-      
-      /* Settings Dropdown */
-      .settings-dropdown {
-        position: relative;
-        display: inline-block;
-        margin-right: 15px;
-      }
-      
-      .settings-btn {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-      
-      .settings-btn:hover {
-        background-color: #2980b9;
-      }
-      
-      .settings-dropdown-content {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 100%;
-        background-color: white;
-        min-width: 160px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        z-index: 1;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-      
-      .settings-dropdown-content a {
-        color: #333;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
-      .settings-dropdown-content a:hover {
-        background-color: #f1f1f1;
-      }
-      
-      .settings-dropdown.active .settings-dropdown-content {
-        display: block;
       }
       
       /* Trash Bin Modal */
@@ -568,20 +571,20 @@
   </head>
   <body>
     <header>
-      <h1>Forget Me Not</h1>
-      <div class="subtitle">一个简单而强大的笔记与时间管理应用</div>
-      <div class="user-info">
-        <div class="settings-dropdown">
-          <button class="settings-btn" id="settings-btn">
-            <i class="fas fa-cog"></i> 设置
-          </button>
-          <div class="settings-dropdown-content" id="settings-dropdown-content">
-            <a href="#" id="trash-bin-btn"><i class="fas fa-trash"></i> 回收站</a>
-            <!-- Add more settings options here as needed -->
-          </div>
+      <div class="settings-dropdown-left">
+        <button class="settings-btn-left" id="settings-btn">
+          <i class="fas fa-cog"></i> Settings
+        </button>
+        <div class="settings-dropdown-content-left" id="settings-dropdown-content">
+          <a href="#" id="trash-bin-btn"><i class="fas fa-trash"></i> Trash Bin</a>
+          <!-- Add more settings options here as needed -->
         </div>
+      </div>
+      <h1>Forget Me Not</h1>
+      <div class="subtitle">A simple and powerful note and time management application</div>
+      <div class="user-info">
         <span class="user-email" id="user-email"></span>
-        <button class="logout-btn" id="logout-btn">退出登录</button>
+        <button class="logout-btn" id="logout-btn">Logout</button>
       </div>
     </header>
     
@@ -590,16 +593,16 @@
         <div class="feature-icon">
           <i class="fas fa-th-large"></i>
         </div>
-        <div class="feature-title">时间管理象限</div>
-        <div class="feature-description">使用艾森豪威尔矩阵管理任务优先级，提高工作效率</div>
+        <div class="feature-title">Time Management Quadrant</div>
+        <div class="feature-description">Use Eisenhower Matrix to manage task priorities and improve work efficiency</div>
       </div>
       
       <div class="feature-card feature-2" onclick="window.location.href='private-events.html'">
         <div class="feature-icon">
           <i class="fas fa-calendar-alt"></i>
         </div>
-        <div class="feature-title">私人事件</div>
-        <div class="feature-description">记录和管理您的个人事件和约会</div>
+        <div class="feature-title">Private Events</div>
+        <div class="feature-description">Record and manage your personal events and appointments</div>
       </div>
     </div>
     
@@ -612,12 +615,12 @@
     <div class="calendar-modal" id="calendar-modal">
       <div class="calendar-modal-content">
         <div class="calendar-modal-header">
-          <div class="calendar-modal-title">日程表 | Schedule</div>
+          <div class="calendar-modal-title">Schedule</div>
           <button class="calendar-modal-close" id="calendar-close">&times;</button>
         </div>
         <div class="calendar-view-selector">
-          <button class="calendar-view-btn active" id="month-view-btn">月视图</button>
-          <button class="calendar-view-btn" id="week-view-btn">周视图</button>
+          <button class="calendar-view-btn active" id="month-view-btn">Month View</button>
+          <button class="calendar-view-btn" id="week-view-btn">Week View</button>
         </div>
         <div class="calendar-modal-body">
           <div id="modal-calendar-container"></div>
@@ -625,15 +628,15 @@
         <div class="calendar-legend">
           <div class="legend-item">
             <div class="legend-color legend-project"></div>
-            <span>项目</span>
+            <span>Project</span>
           </div>
           <div class="legend-item">
             <div class="legend-color legend-private"></div>
-            <span>私人事件</span>
+            <span>Private Events</span>
           </div>
           <div class="legend-item">
             <div class="legend-color legend-deadline"></div>
-            <span>截止日期</span>
+            <span>Deadline</span>
           </div>
         </div>
       </div>
@@ -643,7 +646,7 @@
     <div class="trash-bin-modal" id="trash-bin-modal">
       <div class="trash-bin-modal-content">
         <div class="trash-bin-modal-header">
-          <div class="trash-bin-modal-title">回收站</div>
+          <div class="trash-bin-modal-title">Trash Bin</div>
           <button class="trash-bin-modal-close" id="trash-bin-close">&times;</button>
         </div>
         <div class="trash-bin-modal-body" id="trash-bin-items">
@@ -653,7 +656,7 @@
     </div>
     
     <footer>
-      <p>Forget Me Not &copy; 2023 | 一个简单而强大的笔记应用</p>
+      <p>Forget Me Not &copy; 2023 | A simple and powerful note application</p>
     </footer>
 
     <!-- FullCalendar Scripts -->
@@ -721,7 +724,7 @@
         
         // 设置菜单和回收站功能
         const settingsBtn = document.getElementById('settings-btn');
-        const settingsDropdown = document.querySelector('.settings-dropdown');
+        const settingsDropdown = document.querySelector('.settings-dropdown-left');
         const trashBinBtn = document.getElementById('trash-bin-btn');
         const trashBinModal = document.getElementById('trash-bin-modal');
         const trashBinClose = document.getElementById('trash-bin-close');
@@ -764,7 +767,7 @@
           
           trashRef.once('value', (snapshot) => {
             if (!snapshot.exists()) {
-              trashBinItems.innerHTML = '<div class="empty-trash">回收站为空</div>';
+              trashBinItems.innerHTML = '<div class="empty-trash">Trash Bin is empty</div>';
               return;
             }
             
