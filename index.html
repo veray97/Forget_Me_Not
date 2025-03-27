@@ -135,6 +135,199 @@
         background-color: #c0392b;
       }
       
+      /* Settings Dropdown */
+      .settings-dropdown {
+        position: relative;
+        display: inline-block;
+        margin-right: 15px;
+      }
+      
+      .settings-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .settings-btn:hover {
+        background-color: #2980b9;
+      }
+      
+      .settings-dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background-color: white;
+        min-width: 160px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      
+      .settings-dropdown-content a {
+        color: #333;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .settings-dropdown-content a:hover {
+        background-color: #f1f1f1;
+      }
+      
+      .settings-dropdown.active .settings-dropdown-content {
+        display: block;
+      }
+      
+      /* Trash Bin Modal */
+      .trash-bin-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .trash-bin-modal-content {
+        background-color: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 80%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      
+      .trash-bin-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: #2c3e50;
+        color: white;
+      }
+      
+      .trash-bin-modal-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      
+      .trash-bin-modal-close {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+      }
+      
+      .trash-bin-modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        max-height: 500px;
+      }
+      
+      .trash-item {
+        background-color: #f9f9f9;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 10px;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .trash-item-info {
+        flex: 1;
+      }
+      
+      .trash-item-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .trash-item-preview {
+        color: #666;
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 400px;
+      }
+      
+      .trash-item-date {
+        font-size: 0.8em;
+        color: #7f8c8d;
+      }
+      
+      .trash-item-type {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        color: white;
+        margin-right: 10px;
+      }
+      
+      .trash-item-type.project {
+        background-color: #3498db;
+      }
+      
+      .trash-item-type.event {
+        background-color: #e74c3c;
+      }
+      
+      .trash-item-actions {
+        display: flex;
+        gap: 10px;
+      }
+      
+      .restore-btn, .delete-permanently-btn {
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .restore-btn {
+        background-color: #2ecc71;
+      }
+      
+      .restore-btn:hover {
+        background-color: #27ae60;
+      }
+      
+      .delete-permanently-btn {
+        background-color: #e74c3c;
+      }
+      
+      .delete-permanently-btn:hover {
+        background-color: #c0392b;
+      }
+      
       /* Schedule Button */
       .schedule-btn {
         position: fixed;
@@ -378,6 +571,15 @@
       <h1>Forget Me Not</h1>
       <div class="subtitle">一个简单而强大的笔记与时间管理应用</div>
       <div class="user-info">
+        <div class="settings-dropdown">
+          <button class="settings-btn" id="settings-btn">
+            <i class="fas fa-cog"></i> 设置
+          </button>
+          <div class="settings-dropdown-content" id="settings-dropdown-content">
+            <a href="#" id="trash-bin-btn"><i class="fas fa-trash"></i> 回收站</a>
+            <!-- Add more settings options here as needed -->
+          </div>
+        </div>
         <span class="user-email" id="user-email"></span>
         <button class="logout-btn" id="logout-btn">退出登录</button>
       </div>
@@ -437,6 +639,19 @@
       </div>
     </div>
     
+    <!-- Trash Bin Modal -->
+    <div class="trash-bin-modal" id="trash-bin-modal">
+      <div class="trash-bin-modal-content">
+        <div class="trash-bin-modal-header">
+          <div class="trash-bin-modal-title">回收站</div>
+          <button class="trash-bin-modal-close" id="trash-bin-close">&times;</button>
+        </div>
+        <div class="trash-bin-modal-body" id="trash-bin-items">
+          <!-- Trash items will be loaded here -->
+        </div>
+      </div>
+    </div>
+    
     <footer>
       <p>Forget Me Not &copy; 2023 | 一个简单而强大的笔记应用</p>
     </footer>
@@ -456,10 +671,20 @@
     <script>
       // 检查用户是否已登录
       document.addEventListener('DOMContentLoaded', () => {
-        firebase.auth().onAuthStateChanged((user) => {
+        firebase.auth().onAuthStateChanged(user => {
           if (user) {
-            // 用户已登录，显示用户信息
+            // 用户已登录，显示email和登出按钮
             document.getElementById('user-email').textContent = user.email;
+            document.getElementById('logout-btn').style.display = 'block';
+            
+            // 设置登出功能
+            document.getElementById('logout-btn').addEventListener('click', () => {
+              firebase.auth().signOut().then(() => {
+                window.location.href = 'login.html';
+              }).catch(error => {
+                console.error('退出登录失败:', error);
+              });
+            });
             
             // 初始化日历模态框
             initCalendarModal();
@@ -469,74 +694,499 @@
           }
         });
         
-        // 退出登录
-        document.getElementById('logout-btn').addEventListener('click', () => {
-          firebase.auth().signOut()
-            .then(() => {
-              // 退出成功，重定向到登录页面
-              window.location.href = 'login.html';
-            })
-            .catch((error) => {
-              console.error('退出登录失败:', error);
-              alert('退出登录失败，请重试');
-            });
-        });
-      });
-      
-      // Firebase 引用辅助函数
-      function userProjectsRef() {
-        const user = firebase.auth().currentUser;
-        if (user) {
-          return firebase.database().ref(`users/${user.uid}/projects`);
-        }
-        return null;
-      }
-      
-      function userEventsRef() {
-        const user = firebase.auth().currentUser;
-        if (user) {
-          return firebase.database().ref(`users/${user.uid}/events`);
-        }
-        return null;
-      }
-      
-      // 初始化日历模态框
-      function initCalendarModal() {
+        // 日历按钮和模态框
         const scheduleBtn = document.getElementById('schedule-btn');
         const calendarModal = document.getElementById('calendar-modal');
         const calendarClose = document.getElementById('calendar-close');
         const monthViewBtn = document.getElementById('month-view-btn');
         const weekViewBtn = document.getElementById('week-view-btn');
         
+        // 设置开关
+        let calendarInitialized = false;
         let calendar;
-        let currentView = 'dayGridMonth';
         
-        // 打开日历模态框
+        // 打开日历
         scheduleBtn.addEventListener('click', () => {
           calendarModal.style.display = 'flex';
-          
-          // 如果日历尚未初始化，则初始化
-          if (!calendar) {
-            calendar = initCalendar();
-          } else {
-            // 刷新事件
-            loadAllEvents(calendar);
+          if (!calendarInitialized) {
+            initCalendar();
+            calendarInitialized = true;
           }
         });
         
-        // 关闭日历模态框
+        // 关闭日历
         calendarClose.addEventListener('click', () => {
           calendarModal.style.display = 'none';
         });
         
-        // 点击模态框外部关闭
-        calendarModal.addEventListener('click', (e) => {
-          if (e.target === calendarModal) {
-            calendarModal.style.display = 'none';
-          }
+        // 设置菜单和回收站功能
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsDropdown = document.querySelector('.settings-dropdown');
+        const trashBinBtn = document.getElementById('trash-bin-btn');
+        const trashBinModal = document.getElementById('trash-bin-modal');
+        const trashBinClose = document.getElementById('trash-bin-close');
+        
+        // 设置按钮点击事件
+        settingsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          settingsDropdown.classList.toggle('active');
         });
         
-        // 月视图按钮
+        // 点击页面其他区域关闭设置下拉菜单
+        document.addEventListener('click', () => {
+          settingsDropdown.classList.remove('active');
+        });
+        
+        // 打开回收站
+        trashBinBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          trashBinModal.style.display = 'flex';
+          loadTrashItems();
+        });
+        
+        // 关闭回收站
+        trashBinClose.addEventListener('click', () => {
+          trashBinModal.style.display = 'none';
+        });
+        
+        // 加载回收站项目
+        function loadTrashItems() {
+          const trashBinItems = document.getElementById('trash-bin-items');
+          trashBinItems.innerHTML = '<div class="loading">加载回收站项目中...</div>';
+          
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            trashBinItems.innerHTML = '<div class="error-message">用户未登录，请先登录</div>';
+            return;
+          }
+          
+          const trashRef = firebase.database().ref(`users/${user.uid}/trash`);
+          
+          trashRef.once('value', (snapshot) => {
+            if (!snapshot.exists()) {
+              trashBinItems.innerHTML = '<div class="empty-trash">回收站为空</div>';
+              return;
+            }
+            
+            trashBinItems.innerHTML = '';
+            const trashItems = [];
+            
+            snapshot.forEach((itemSnapshot) => {
+              const item = itemSnapshot.val();
+              item.id = itemSnapshot.key;
+              trashItems.push(item);
+            });
+            
+            // 按删除时间倒序排列
+            trashItems.sort((a, b) => b.deletedAt - a.deletedAt);
+            
+            trashItems.forEach((item) => {
+              const trashItem = createTrashItem(item);
+              trashBinItems.appendChild(trashItem);
+            });
+          });
+        }
+        
+        // 创建回收站项目元素
+        function createTrashItem(item) {
+          const trashItem = document.createElement('div');
+          trashItem.className = 'trash-item';
+          trashItem.setAttribute('data-id', item.id);
+          
+          // 格式化删除日期
+          const deletedDate = new Date(item.deletedAt);
+          const formattedDate = `${deletedDate.getFullYear()}-${(deletedDate.getMonth() + 1).toString().padStart(2, '0')}-${deletedDate.getDate().toString().padStart(2, '0')} ${deletedDate.getHours().toString().padStart(2, '0')}:${deletedDate.getMinutes().toString().padStart(2, '0')}`;
+          
+          // 确定项目类型
+          const itemType = item.type || (item.eventDate ? 'event' : 'project');
+          const typeText = itemType === 'project' ? '项目' : '事件';
+          
+          // 获取内容预览（最多15个字符）
+          const contentPreview = item.content 
+            ? (typeof item.content === 'string' 
+                ? item.content.substring(0, 15)
+                : JSON.stringify(item.content).substring(0, 15)) 
+            : '';
+          
+          trashItem.innerHTML = `
+            <div class="trash-item-info">
+              <div class="trash-item-header">
+                <span class="trash-item-type ${itemType}">${typeText}</span>
+                <span class="trash-item-title">${item.title || '无标题'}</span>
+              </div>
+              <div class="trash-item-preview">${contentPreview}${contentPreview.length > 15 ? '...' : ''}</div>
+              <div class="trash-item-date">删除于: ${formattedDate}</div>
+            </div>
+            <div class="trash-item-actions">
+              <button class="restore-btn" data-id="${item.id}" data-type="${itemType}">
+                <i class="fas fa-undo"></i> 恢复
+              </button>
+              <button class="delete-permanently-btn" data-id="${item.id}" data-type="${itemType}">
+                <i class="fas fa-trash-alt"></i> 永久删除
+              </button>
+            </div>
+          `;
+          
+          // 恢复按钮事件
+          const restoreBtn = trashItem.querySelector('.restore-btn');
+          restoreBtn.addEventListener('click', () => {
+            restoreItem(item.id, itemType);
+          });
+          
+          // 永久删除按钮事件
+          const deleteBtn = trashItem.querySelector('.delete-permanently-btn');
+          deleteBtn.addEventListener('click', () => {
+            permanentlyDeleteItem(item.id);
+          });
+          
+          return trashItem;
+        }
+        
+        // 恢复项目
+        function restoreItem(itemId, itemType) {
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            alert('用户未登录，请先登录');
+            return;
+          }
+          
+          const trashRef = firebase.database().ref(`users/${user.uid}/trash/${itemId}`);
+          
+          trashRef.once('value', (snapshot) => {
+            if (!snapshot.exists()) {
+              alert('项目不存在或已被删除');
+              return;
+            }
+            
+            const item = snapshot.val();
+            const targetRef = firebase.database().ref(`users/${user.uid}/${itemType === 'event' ? 'events' : 'projects'}/${itemId}`);
+            
+            // 移除 deletedAt 字段
+            delete item.deletedAt;
+            delete item.type;
+            
+            // 恢复项目
+            targetRef.set(item)
+              .then(() => {
+                // 从回收站删除
+                return trashRef.remove();
+              })
+              .then(() => {
+                alert(`${itemType === 'project' ? '项目' : '事件'}已成功恢复`);
+                
+                // 重新加载回收站项目
+                loadTrashItems();
+              })
+              .catch((error) => {
+                console.error('恢复失败:', error);
+                alert('恢复失败，请重试');
+              });
+          });
+        }
+        
+        // 永久删除项目
+        function permanentlyDeleteItem(itemId) {
+          if (!confirm('确定要永久删除此项目吗？此操作不可撤销。')) {
+            return;
+          }
+          
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            alert('用户未登录，请先登录');
+            return;
+          }
+          
+          const trashRef = firebase.database().ref(`users/${user.uid}/trash/${itemId}`);
+          
+          trashRef.remove()
+            .then(() => {
+              // 重新加载回收站项目
+              loadTrashItems();
+            })
+            .catch((error) => {
+              console.error('删除失败:', error);
+              alert('删除失败，请重试');
+            });
+        }
+        
+        // 初始化日历
+        function initCalendar() {
+          const calendarEl = document.getElementById('modal-calendar-container');
+          
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'zh-cn',
+            height: '100%',
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            },
+            dayMaxEventRows: true,
+            views: {
+              dayGridMonth: {
+                dayMaxEventRows: 4,
+                eventDisplay: 'block',
+                displayEventTime: false
+              },
+              timeGridWeek: {
+                slotMinTime: '07:00:00',
+                slotMaxTime: '22:00:00',
+                nowIndicator: true,
+                eventTimeFormat: {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }
+              }
+            },
+            eventContent: function(info) {
+              const view = info.view.type;
+              
+              // 月视图中仅显示彩色条和标题
+              if (view === 'dayGridMonth') {
+                const eventEl = document.createElement('div');
+                eventEl.classList.add('month-view-event');
+                eventEl.style.display = 'flex';
+                eventEl.style.alignItems = 'center';
+                eventEl.style.gap = '4px';
+                
+                const colorDot = document.createElement('div');
+                colorDot.style.width = '8px';
+                colorDot.style.height = '8px';
+                colorDot.style.borderRadius = '50%';
+                colorDot.style.backgroundColor = info.event.backgroundColor;
+                
+                const title = document.createElement('div');
+                title.innerText = info.event.title;
+                title.style.overflow = 'hidden';
+                title.style.textOverflow = 'ellipsis';
+                title.style.whiteSpace = 'nowrap';
+                title.style.fontSize = '0.8em';
+                
+                eventEl.appendChild(colorDot);
+                eventEl.appendChild(title);
+                
+                return { domNodes: [eventEl] };
+              }
+              
+              // 周视图中显示更详细信息
+              if (view === 'timeGridWeek') {
+                const eventEl = document.createElement('div');
+                eventEl.style.padding = '4px';
+                
+                const title = document.createElement('div');
+                title.innerHTML = `<strong>${info.event.title}</strong>`;
+                title.style.fontSize = '0.85em';
+                title.style.marginBottom = '2px';
+                
+                const time = document.createElement('div');
+                time.innerHTML = info.timeText;
+                time.style.fontSize = '0.75em';
+                time.style.color = '#ffffff80';
+                
+                eventEl.appendChild(title);
+                eventEl.appendChild(time);
+                
+                return { domNodes: [eventEl] };
+              }
+              
+              return null;
+            },
+            eventDidMount: function(info) {
+              // 事件悬停提示
+              const tooltip = document.createElement('div');
+              tooltip.className = 'event-tooltip';
+              
+              let content = `<div class="event-title">${info.event.title}</div>`;
+              
+              if (info.event.extendedProps.type) {
+                const typeLabel = info.event.extendedProps.type === 'project' ? '项目' : 
+                                (info.event.extendedProps.type === 'private' ? '私人事件' : '截止日期');
+                const typeClass = info.event.extendedProps.type === 'project' ? 'event-type-project' : 
+                                (info.event.extendedProps.type === 'private' ? 'event-type-private' : 'event-type-hard-deadline');
+                
+                content += `<div><span class="event-type ${typeClass}">${typeLabel}</span></div>`;
+              }
+              
+              if (info.event.extendedProps.description) {
+                content += `<div>${info.event.extendedProps.description}</div>`;
+              }
+              
+              if (info.event.start) {
+                let dateStr = info.event.start.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                });
+                content += `<div class="event-time">开始: ${dateStr}</div>`;
+              }
+              
+              if (info.event.end) {
+                let dateStr = info.event.end.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                });
+                content += `<div class="event-time">结束: ${dateStr}</div>`;
+              }
+              
+              tooltip.innerHTML = content;
+              tooltip.style.position = 'absolute';
+              tooltip.style.display = 'none';
+              
+              document.body.appendChild(tooltip);
+              
+              info.el.addEventListener('mouseover', function() {
+                const rect = info.el.getBoundingClientRect();
+                tooltip.style.left = rect.left + window.pageXOffset + 'px';
+                tooltip.style.top = rect.bottom + window.pageYOffset + 'px';
+                tooltip.style.display = 'block';
+              });
+              
+              info.el.addEventListener('mouseout', function() {
+                tooltip.style.display = 'none';
+              });
+            }
+          });
+          
+          // 渲染日历
+          calendar.render();
+          
+          // 加载项目和私人事件
+          loadAllEvents(calendar);
+          
+          return calendar;
+        }
+        
+        // 加载所有事件到日历
+        function loadAllEvents(calendar) {
+          // 清空现有事件
+          calendar.removeAllEvents();
+          
+          // 加载项目事件
+          loadProjectEvents(calendar);
+          
+          // 加载私人事件
+          loadPrivateEvents(calendar);
+        }
+        
+        // 加载项目事件到日历
+        function loadProjectEvents(calendar) {
+          const projectsRef = userProjectsRef();
+          if (!projectsRef) return;
+          
+          projectsRef.once('value', (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+              const project = childSnapshot.val();
+              
+              // 添加项目提醒
+              if (project.hasReminder && project.reminderTime) {
+                const reminderDate = new Date(project.reminderTime);
+                
+                // 计算结束时间
+                let endDate = new Date(reminderDate);
+                if (project.reminderDuration) {
+                  // 将持续时间（分钟）添加到开始时间
+                  endDate.setMinutes(endDate.getMinutes() + project.reminderDuration);
+                } else {
+                  // 如果没有指定持续时间，默认为30分钟
+                  endDate.setMinutes(endDate.getMinutes() + 30);
+                }
+                
+                calendar.addEvent({
+                  title: project.title || '无标题项目',
+                  start: reminderDate,
+                  end: endDate,
+                  color: '#3498db', // 蓝色表示项目提醒
+                  extendedProps: {
+                    type: 'project',
+                    description: '项目提醒',
+                    duration: project.reminderDuration || 30
+                  }
+                });
+              }
+              
+              // 添加项目Hard DDL
+              if (project.hasHardDeadline && project.hardDeadlineTime) {
+                const deadlineDate = new Date(project.hardDeadlineTime);
+                
+                calendar.addEvent({
+                  title: `${project.title || '无标题项目'} (截止)`,
+                  start: deadlineDate,
+                  allDay: true,
+                  color: '#e67e22', // 橙色表示Hard DDL
+                  extendedProps: {
+                    type: 'hard-deadline',
+                    description: '项目截止日期',
+                    importance: project.hardDeadlineImportance || '中等'
+                  }
+                });
+              }
+            });
+          });
+        }
+        
+        // 加载私人事件到日历
+        function loadPrivateEvents(calendar) {
+          const eventsRef = userEventsRef();
+          if (!eventsRef) return;
+          
+          eventsRef.once('value', (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+              const event = childSnapshot.val();
+              
+              // 添加私人事件提醒
+              if (event.hasReminder && event.reminderTime) {
+                const reminderDate = new Date(event.reminderTime);
+                
+                // 计算结束时间
+                let endDate = new Date(reminderDate);
+                if (event.reminderDuration) {
+                  // 将持续时间（分钟）添加到开始时间
+                  endDate.setMinutes(endDate.getMinutes() + event.reminderDuration);
+                } else {
+                  // 如果没有指定持续时间，默认为30分钟
+                  endDate.setMinutes(endDate.getMinutes() + 30);
+                }
+                
+                calendar.addEvent({
+                  title: event.title || '无标题事件',
+                  start: reminderDate,
+                  end: endDate,
+                  color: '#e74c3c', // 红色表示私人事件
+                  extendedProps: {
+                    type: 'private',
+                    description: '私人事件提醒',
+                    duration: event.reminderDuration || 30
+                  }
+                });
+              }
+              
+              // 添加事件Hard DDL
+              if (event.eventDate) {
+                const eventDate = new Date(event.eventDate);
+                
+                calendar.addEvent({
+                  title: `${event.title || '无标题事件'} (截止)`,
+                  start: eventDate,
+                  allDay: true,
+                  color: '#e74c3c', // 红色表示私人事件
+                  extendedProps: {
+                    type: 'private',
+                    description: '私人事件截止'
+                  }
+                });
+              }
+            });
+          });
+        }
+        
+        // 视图切换事件
         monthViewBtn.addEventListener('click', () => {
           if (currentView !== 'dayGridMonth') {
             currentView = 'dayGridMonth';
@@ -551,7 +1201,6 @@
           }
         });
         
-        // 周视图按钮
         weekViewBtn.addEventListener('click', () => {
           if (currentView !== 'timeGridWeek') {
             currentView = 'timeGridWeek';
@@ -565,289 +1214,7 @@
             loadAllEvents(calendar);
           }
         });
-        
-        return {
-          calendar,
-          modal: calendarModal
-        };
-      }
-      
-      // 初始化日历
-      function initCalendar() {
-        const calendarEl = document.getElementById('modal-calendar-container');
-        
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          locale: 'zh-cn',
-          height: '100%',
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: ''
-          },
-          dayMaxEventRows: true,
-          views: {
-            dayGridMonth: {
-              dayMaxEventRows: 4,
-              eventDisplay: 'block',
-              displayEventTime: false
-            },
-            timeGridWeek: {
-              slotMinTime: '07:00:00',
-              slotMaxTime: '22:00:00',
-              nowIndicator: true,
-              eventTimeFormat: {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }
-            }
-          },
-          eventContent: function(info) {
-            const view = info.view.type;
-            
-            // 月视图中仅显示彩色条和标题
-            if (view === 'dayGridMonth') {
-              const eventEl = document.createElement('div');
-              eventEl.classList.add('month-view-event');
-              eventEl.style.display = 'flex';
-              eventEl.style.alignItems = 'center';
-              eventEl.style.gap = '4px';
-              
-              const colorDot = document.createElement('div');
-              colorDot.style.width = '8px';
-              colorDot.style.height = '8px';
-              colorDot.style.borderRadius = '50%';
-              colorDot.style.backgroundColor = info.event.backgroundColor;
-              
-              const title = document.createElement('div');
-              title.innerText = info.event.title;
-              title.style.overflow = 'hidden';
-              title.style.textOverflow = 'ellipsis';
-              title.style.whiteSpace = 'nowrap';
-              title.style.fontSize = '0.8em';
-              
-              eventEl.appendChild(colorDot);
-              eventEl.appendChild(title);
-              
-              return { domNodes: [eventEl] };
-            }
-            
-            // 周视图中显示更详细信息
-            if (view === 'timeGridWeek') {
-              const eventEl = document.createElement('div');
-              eventEl.style.padding = '4px';
-              
-              const title = document.createElement('div');
-              title.innerHTML = `<strong>${info.event.title}</strong>`;
-              title.style.fontSize = '0.85em';
-              title.style.marginBottom = '2px';
-              
-              const time = document.createElement('div');
-              time.innerHTML = info.timeText;
-              time.style.fontSize = '0.75em';
-              time.style.color = '#ffffff80';
-              
-              eventEl.appendChild(title);
-              eventEl.appendChild(time);
-              
-              return { domNodes: [eventEl] };
-            }
-            
-            return null;
-          },
-          eventDidMount: function(info) {
-            // 事件悬停提示
-            const tooltip = document.createElement('div');
-            tooltip.className = 'event-tooltip';
-            
-            let content = `<div class="event-title">${info.event.title}</div>`;
-            
-            if (info.event.extendedProps.type) {
-              const typeLabel = info.event.extendedProps.type === 'project' ? '项目' : 
-                              (info.event.extendedProps.type === 'private' ? '私人事件' : '截止日期');
-              const typeClass = info.event.extendedProps.type === 'project' ? 'event-type-project' : 
-                              (info.event.extendedProps.type === 'private' ? 'event-type-private' : 'event-type-hard-deadline');
-              
-              content += `<div><span class="event-type ${typeClass}">${typeLabel}</span></div>`;
-            }
-            
-            if (info.event.extendedProps.description) {
-              content += `<div>${info.event.extendedProps.description}</div>`;
-            }
-            
-            if (info.event.start) {
-              let dateStr = info.event.start.toLocaleString('zh-CN', {
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              });
-              content += `<div class="event-time">开始: ${dateStr}</div>`;
-            }
-            
-            if (info.event.end) {
-              let dateStr = info.event.end.toLocaleString('zh-CN', {
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              });
-              content += `<div class="event-time">结束: ${dateStr}</div>`;
-            }
-            
-            tooltip.innerHTML = content;
-            tooltip.style.position = 'absolute';
-            tooltip.style.display = 'none';
-            
-            document.body.appendChild(tooltip);
-            
-            info.el.addEventListener('mouseover', function() {
-              const rect = info.el.getBoundingClientRect();
-              tooltip.style.left = rect.left + window.pageXOffset + 'px';
-              tooltip.style.top = rect.bottom + window.pageYOffset + 'px';
-              tooltip.style.display = 'block';
-            });
-            
-            info.el.addEventListener('mouseout', function() {
-              tooltip.style.display = 'none';
-            });
-          }
-        });
-        
-        // 渲染日历
-        calendar.render();
-        
-        // 加载项目和私人事件
-        loadAllEvents(calendar);
-        
-        return calendar;
-      }
-      
-      // 加载所有事件到日历
-      function loadAllEvents(calendar) {
-        // 清空现有事件
-        calendar.removeAllEvents();
-        
-        // 加载项目事件
-        loadProjectEvents(calendar);
-        
-        // 加载私人事件
-        loadPrivateEvents(calendar);
-      }
-      
-      // 加载项目事件到日历
-      function loadProjectEvents(calendar) {
-        const projectsRef = userProjectsRef();
-        if (!projectsRef) return;
-        
-        projectsRef.once('value', (snapshot) => {
-          snapshot.forEach((childSnapshot) => {
-            const project = childSnapshot.val();
-            
-            // 添加项目提醒
-            if (project.hasReminder && project.reminderTime) {
-              const reminderDate = new Date(project.reminderTime);
-              
-              // 计算结束时间
-              let endDate = new Date(reminderDate);
-              if (project.reminderDuration) {
-                // 将持续时间（分钟）添加到开始时间
-                endDate.setMinutes(endDate.getMinutes() + project.reminderDuration);
-              } else {
-                // 如果没有指定持续时间，默认为30分钟
-                endDate.setMinutes(endDate.getMinutes() + 30);
-              }
-              
-              calendar.addEvent({
-                title: project.title || '无标题项目',
-                start: reminderDate,
-                end: endDate,
-                color: '#3498db', // 蓝色表示项目提醒
-                extendedProps: {
-                  type: 'project',
-                  description: '项目提醒',
-                  duration: project.reminderDuration || 30
-                }
-              });
-            }
-            
-            // 添加项目Hard DDL
-            if (project.hasHardDeadline && project.hardDeadlineTime) {
-              const deadlineDate = new Date(project.hardDeadlineTime);
-              
-              calendar.addEvent({
-                title: `${project.title || '无标题项目'} (截止)`,
-                start: deadlineDate,
-                allDay: true,
-                color: '#e67e22', // 橙色表示Hard DDL
-                extendedProps: {
-                  type: 'hard-deadline',
-                  description: '项目截止日期',
-                  importance: project.hardDeadlineImportance || '中等'
-                }
-              });
-            }
-          });
-        });
-      }
-      
-      // 加载私人事件到日历
-      function loadPrivateEvents(calendar) {
-        const eventsRef = userEventsRef();
-        if (!eventsRef) return;
-        
-        eventsRef.once('value', (snapshot) => {
-          snapshot.forEach((childSnapshot) => {
-            const event = childSnapshot.val();
-            
-            // 添加私人事件提醒
-            if (event.hasReminder && event.reminderTime) {
-              const reminderDate = new Date(event.reminderTime);
-              
-              // 计算结束时间
-              let endDate = new Date(reminderDate);
-              if (event.reminderDuration) {
-                // 将持续时间（分钟）添加到开始时间
-                endDate.setMinutes(endDate.getMinutes() + event.reminderDuration);
-              } else {
-                // 如果没有指定持续时间，默认为30分钟
-                endDate.setMinutes(endDate.getMinutes() + 30);
-              }
-              
-              calendar.addEvent({
-                title: event.title || '无标题事件',
-                start: reminderDate,
-                end: endDate,
-                color: '#e74c3c', // 红色表示私人事件
-                extendedProps: {
-                  type: 'private',
-                  description: '私人事件提醒',
-                  duration: event.reminderDuration || 30
-                }
-              });
-            }
-            
-            // 添加事件Hard DDL
-            if (event.eventDate) {
-              const eventDate = new Date(event.eventDate);
-              
-              calendar.addEvent({
-                title: `${event.title || '无标题事件'} (截止)`,
-                start: eventDate,
-                allDay: true,
-                color: '#e74c3c', // 红色表示私人事件
-                extendedProps: {
-                  type: 'private',
-                  description: '私人事件截止'
-                }
-              });
-            }
-          });
-        });
-      }
+      });
     </script>
   </body>
 </html>

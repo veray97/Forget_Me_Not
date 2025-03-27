@@ -539,14 +539,170 @@
                 <input type="datetime-local" id="reminder-date">
             </div>
             <div class="form-group">
+                <label for="reminder-advance">提前提醒</label>
+                <select id="reminder-advance">
+                    <option value="0">不提前提醒</option>
+                    <option value="5">提前5分钟</option>
+                    <option value="10">提前10分钟</option>
+                    <option value="15" selected>提前15分钟</option>
+                    <option value="30">提前30分钟</option>
+                    <option value="60">提前1小时</option>
+                    <option value="120">提前2小时</option>
+                    <option value="1440">提前1天</option>
+                    <option value="10080">提前1周</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="reminder-repeat">重复</label>
                 <select id="reminder-repeat">
                     <option value="once">不重复</option>
                     <option value="daily">每天</option>
+                    <option value="weekdays">每个工作日</option>
                     <option value="weekly">每周</option>
+                    <option value="biweekly">每两周</option>
                     <option value="monthly">每月</option>
+                    <option value="yearly">每年</option>
                 </select>
             </div>
+            
+            <!-- 重复选项的附加设置 -->
+            <div class="form-group repeat-options" id="repeat-daily-options" style="display: none;">
+                <label>每隔</label>
+                <input type="number" id="repeat-daily-interval" min="1" max="99" value="1" style="width: 50px;">
+                <label>天</label>
+            </div>
+            
+            <div class="form-group repeat-options" id="repeat-weekly-options" style="display: none;">
+                <label>每隔</label>
+                <input type="number" id="repeat-weekly-interval" min="1" max="99" value="1" style="width: 50px;">
+                <label>周，在以下日期：</label>
+                <div class="weekday-selector">
+                    <label><input type="checkbox" value="0">周日</label>
+                    <label><input type="checkbox" value="1">周一</label>
+                    <label><input type="checkbox" value="2">周二</label>
+                    <label><input type="checkbox" value="3">周三</label>
+                    <label><input type="checkbox" value="4">周四</label>
+                    <label><input type="checkbox" value="5">周五</label>
+                    <label><input type="checkbox" value="6">周六</label>
+                </div>
+            </div>
+            
+            <div class="form-group repeat-options" id="repeat-monthly-options" style="display: none;">
+                <div>
+                    <input type="radio" name="monthly-type" id="monthly-day" checked>
+                    <label for="monthly-day">每隔</label>
+                    <input type="number" id="repeat-monthly-interval" min="1" max="99" value="1" style="width: 50px;">
+                    <label>月的第</label>
+                    <input type="number" id="repeat-monthly-day" min="1" max="31" value="1" style="width: 50px;">
+                    <label>天</label>
+                </div>
+                <div>
+                    <input type="radio" name="monthly-type" id="monthly-position">
+                    <label for="monthly-position">每隔</label>
+                    <input type="number" id="repeat-monthly-position-interval" min="1" max="99" value="1" style="width: 50px;">
+                    <label>月的第</label>
+                    <select id="repeat-monthly-position">
+                        <option value="first">第一个</option>
+                        <option value="second">第二个</option>
+                        <option value="third">第三个</option>
+                        <option value="fourth">第四个</option>
+                        <option value="last">最后一个</option>
+                    </select>
+                    <select id="repeat-monthly-day-of-week">
+                        <option value="day">天</option>
+                        <option value="weekday">工作日</option>
+                        <option value="weekend">周末</option>
+                        <option value="sunday">周日</option>
+                        <option value="monday">周一</option>
+                        <option value="tuesday">周二</option>
+                        <option value="wednesday">周三</option>
+                        <option value="thursday">周四</option>
+                        <option value="friday">周五</option>
+                        <option value="saturday">周六</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group repeat-options" id="repeat-yearly-options" style="display: none;">
+                <div>
+                    <input type="radio" name="yearly-type" id="yearly-date" checked>
+                    <label for="yearly-date">每年的</label>
+                    <select id="repeat-yearly-month">
+                        <option value="1">1月</option>
+                        <option value="2">2月</option>
+                        <option value="3">3月</option>
+                        <option value="4">4月</option>
+                        <option value="5">5月</option>
+                        <option value="6">6月</option>
+                        <option value="7">7月</option>
+                        <option value="8">8月</option>
+                        <option value="9">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                    <input type="number" id="repeat-yearly-day" min="1" max="31" value="1" style="width: 50px;">
+                    <label>日</label>
+                </div>
+                <div>
+                    <input type="radio" name="yearly-type" id="yearly-position">
+                    <label for="yearly-position">每年</label>
+                    <select id="repeat-yearly-position-month">
+                        <option value="1">1月</option>
+                        <option value="2">2月</option>
+                        <option value="3">3月</option>
+                        <option value="4">4月</option>
+                        <option value="5">5月</option>
+                        <option value="6">6月</option>
+                        <option value="7">7月</option>
+                        <option value="8">8月</option>
+                        <option value="9">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                    <label>的第</label>
+                    <select id="repeat-yearly-position">
+                        <option value="first">第一个</option>
+                        <option value="second">第二个</option>
+                        <option value="third">第三个</option>
+                        <option value="fourth">第四个</option>
+                        <option value="last">最后一个</option>
+                    </select>
+                    <select id="repeat-yearly-day-of-week">
+                        <option value="day">天</option>
+                        <option value="weekday">工作日</option>
+                        <option value="weekend">周末</option>
+                        <option value="sunday">周日</option>
+                        <option value="monday">周一</option>
+                        <option value="tuesday">周二</option>
+                        <option value="wednesday">周三</option>
+                        <option value="thursday">周四</option>
+                        <option value="friday">周五</option>
+                        <option value="saturday">周六</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>重复结束</label>
+                <div>
+                    <input type="radio" name="repeat-end" id="repeat-no-end" checked>
+                    <label for="repeat-no-end">无结束日期</label>
+                </div>
+                <div>
+                    <input type="radio" name="repeat-end" id="repeat-end-after">
+                    <label for="repeat-end-after">结束于</label>
+                    <input type="number" id="repeat-end-count" min="1" max="999" value="10" style="width: 60px;">
+                    <label>次后</label>
+                </div>
+                <div>
+                    <input type="radio" name="repeat-end" id="repeat-end-by">
+                    <label for="repeat-end-by">截止日期</label>
+                    <input type="date" id="repeat-end-date">
+                </div>
+            </div>
+            
             <div class="form-group">
                 <label for="reminder-music">提醒音乐</label>
                 <select id="reminder-music">
@@ -557,12 +713,35 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="reminder-category">类别</label>
+                <select id="reminder-category">
+                    <option value="none">无分类</option>
+                    <option value="work" style="background-color: #FAD165">工作</option>
+                    <option value="personal" style="background-color: #92E1C0">个人</option>
+                    <option value="important" style="background-color: #F37B6D">重要</option>
+                    <option value="travel" style="background-color: #9FC6E7">出行</option>
+                    <option value="meeting" style="background-color: #CD9FE7">会议</option>
+                </select>
+                <button id="add-category" class="small-btn">管理类别</button>
+            </div>
+            <div class="form-group">
                 <label for="reminder-duration">预计用时</label>
                 <div class="duration-container" style="display: flex; align-items: center;">
                     <input type="number" id="reminder-duration-hours" min="0" max="100" value="0" style="width: 60px;">
                     <label for="reminder-duration-hours" style="margin: 0 5px 0 5px;">小时</label>
                     <input type="number" id="reminder-duration-minutes" min="0" max="59" value="30" style="width: 60px;">
                     <label for="reminder-duration-minutes" style="margin-left: 5px;">分钟</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reminder-display">提醒显示选项</label>
+                <div>
+                    <input type="checkbox" id="reminder-show-over-windows" checked>
+                    <label for="reminder-show-over-windows">在其他窗口之上显示提醒</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="reminder-dismiss-past" checked>
+                    <label for="reminder-dismiss-past">自动忽略过期提醒</label>
                 </div>
             </div>
         </div>

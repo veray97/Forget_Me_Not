@@ -722,9 +722,7 @@
                     return;
                 }
                 
-                if (confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个项目吗？此操作不可撤销。`)) {
-                    deleteSelectedProjects(selectedCheckboxes);
-                }
+                deleteSelectedProjects(selectedCheckboxes);
             });
         }
         
@@ -833,14 +831,38 @@
                 projectIds.push(checkbox.dataset.id);
             });
             
-            // 创建批量删除的Promise数组
-            const deletePromises = projectIds.map(id => userProjects.child(id).remove());
+            // 创建移动到回收站的Promise数组
+            const promises = [];
+            const user = firebase.auth().currentUser;
             
-            // 执行批量删除
-            Promise.all(deletePromises)
-                .then(() => {
-                    alert(`成功删除 ${projectIds.length} 个项目`);
+            projectIds.forEach(id => {
+                // 添加获取项目数据并移动到回收站的操作
+                const promise = userProjects.child(id).once('value')
+                    .then((snapshot) => {
+                        if (snapshot.exists()) {
+                            const projectData = snapshot.val();
+                            
+                            // 添加删除时间和类型标记
+                            projectData.deletedAt = Date.now();
+                            projectData.type = 'project';
+                            
+                            // 将项目移动到回收站
+                            const trashRef = firebase.database().ref(`users/${user.uid}/trash/${id}`);
+                            
+                            // 保存到回收站然后从原位置删除
+                            return trashRef.set(projectData).then(() => {
+                                return userProjects.child(id).remove();
+                            });
+                        }
+                        return Promise.resolve(); // 如果项目不存在，直接返回已解决的Promise
+                    });
                     
+                promises.push(promise);
+            });
+            
+            // 执行批量操作
+            Promise.all(promises)
+                .then(() => {
                     // 从本地缓存中删除项目
                     projectIds.forEach(id => {
                         delete allProjects[id];
@@ -860,33 +882,50 @@
         
         // 删除单个项目
         function deleteProject(projectId) {
-            if (confirm('确定要删除此项目吗？此操作不可撤销。')) {
-                // 获取用户特定的项目引用
-                const userProjects = userProjectsRef();
-                if (!userProjects) {
-                    alert('用户未登录，无法删除项目');
-                    return;
-                }
-                
-                // 删除项目
-                userProjects.child(projectId).remove()
-                    .then(() => {
-                        alert('项目已成功删除');
-                        
-                        // 从本地缓存中删除项目
-                        delete allProjects[projectId];
-                        
-                        // 更新项目列表
-                        updateProjectLibraryList();
-                        
-                        // 重新加载象限中的项目点
-                        loadProjects();
-                    })
-                    .catch(error => {
-                        console.error('删除项目失败:', error);
-                        alert('删除项目失败，请重试');
-                    });
+            // 获取用户特定的项目引用
+            const userProjects = userProjectsRef();
+            if (!userProjects) {
+                alert('用户未登录，无法删除项目');
+                return;
             }
+            
+            // 先获取项目数据
+            userProjects.child(projectId).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const projectData = snapshot.val();
+                        
+                        // 添加删除时间和类型标记
+                        projectData.deletedAt = Date.now();
+                        projectData.type = 'project';
+                        
+                        // 将项目移动到回收站
+                        const user = firebase.auth().currentUser;
+                        const trashRef = firebase.database().ref(`users/${user.uid}/trash/${projectId}`);
+                        
+                        // 保存到回收站
+                        return trashRef.set(projectData).then(() => {
+                            // 保存成功后从原位置删除
+                            return userProjects.child(projectId).remove();
+                        });
+                    } else {
+                        throw new Error('找不到项目数据');
+                    }
+                })
+                .then(() => {
+                    // 从本地缓存中删除项目
+                    delete allProjects[projectId];
+                    
+                    // 更新项目列表
+                    updateProjectLibraryList();
+                    
+                    // 重新加载象限中的项目点
+                    loadProjects();
+                })
+                .catch(error => {
+                    console.error('删除项目失败:', error);
+                    alert('删除项目失败，请重试');
+                });
         }
         
         // 显示添加项目表单

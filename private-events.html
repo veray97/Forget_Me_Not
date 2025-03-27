@@ -770,20 +770,40 @@
                 return;
             }
             
-            if (confirm('确定要删除这个事件吗？此操作不可撤销。')) {
-                userEvents.child(currentNoteId).remove()
-                    .then(() => {
-                        currentNoteId = null;
-                        titleInput.value = '';
-                        contentTextarea.value = '';
-                        eventDateInput.value = formattedToday;
-                        loadNotes();
-                    })
-                    .catch((error) => {
-                        console.error('删除事件失败:', error);
-                        alert('删除事件失败，请重试');
-                    });
-            }
+            // 先获取事件数据
+            userEvents.child(currentNoteId).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const eventData = snapshot.val();
+                        
+                        // 添加删除时间和类型标记
+                        eventData.deletedAt = Date.now();
+                        eventData.type = 'event';
+                        
+                        // 将事件移动到回收站
+                        const user = firebase.auth().currentUser;
+                        const trashRef = firebase.database().ref(`users/${user.uid}/trash/${currentNoteId}`);
+                        
+                        // 保存到回收站
+                        return trashRef.set(eventData).then(() => {
+                            // 保存成功后从原位置删除
+                            return userEvents.child(currentNoteId).remove();
+                        });
+                    } else {
+                        throw new Error('找不到事件数据');
+                    }
+                })
+                .then(() => {
+                    currentNoteId = null;
+                    titleInput.value = '';
+                    contentTextarea.value = '';
+                    eventDateInput.value = formattedToday;
+                    loadNotes();
+                })
+                .catch((error) => {
+                    console.error('删除事件失败:', error);
+                    alert('删除事件失败，请重试');
+                });
         }
 
         // 新建事件
@@ -966,40 +986,60 @@
                 return;
             }
             
-            if (confirm(`确定要删除选中的 ${checkboxes.length} 个事件吗？此操作不可撤销。`)) {
-                const deletePromises = [];
+            const promises = [];
+            const user = firebase.auth().currentUser;
+            
+            // 创建一个操作队列
+            checkboxes.forEach(checkbox => {
+                const noteItem = checkbox.closest('.note-item');
+                const noteId = noteItem.dataset.id;
                 
-                checkboxes.forEach(checkbox => {
-                    const noteItem = checkbox.closest('.note-item');
-                    const noteId = noteItem.dataset.id;
-                    
-                    // 将删除操作添加到promises数组
-                    deletePromises.push(userEvents.child(noteId).remove());
-                    
-                    // 如果当前选中项被删除，清空编辑区
-                    if (noteId === currentNoteId) {
-                        currentNoteId = null;
-                        titleInput.value = '';
-                        contentTextarea.value = '';
-                        eventDateInput.value = formattedToday;
-                        
-                        // 重置提醒设置
-                        reminderToggle.checked = false;
-                        reminderSettings.style.display = 'none';
-                    }
-                });
-                
-                // 使用Promise.all等待所有删除操作完成
-                Promise.all(deletePromises)
-                    .then(() => {
-                        // 重新加载事件列表
-                        loadNotes();
-                    })
-                    .catch(error => {
-                        console.error('批量删除事件失败:', error);
-                        alert('批量删除事件失败，请重试');
+                // 添加获取事件数据并移动到回收站的操作
+                const promise = userEvents.child(noteId).once('value')
+                    .then((snapshot) => {
+                        if (snapshot.exists()) {
+                            const eventData = snapshot.val();
+                            
+                            // 添加删除时间和类型标记
+                            eventData.deletedAt = Date.now();
+                            eventData.type = 'event';
+                            
+                            // 将事件移动到回收站
+                            const trashRef = firebase.database().ref(`users/${user.uid}/trash/${noteId}`);
+                            
+                            // 保存到回收站然后从原位置删除
+                            return trashRef.set(eventData).then(() => {
+                                return userEvents.child(noteId).remove();
+                            });
+                        }
+                        return Promise.resolve(); // 如果事件不存在，直接返回已解决的Promise
                     });
-            }
+                
+                promises.push(promise);
+                
+                // 如果当前选中项被删除，清空编辑区
+                if (noteId === currentNoteId) {
+                    currentNoteId = null;
+                    titleInput.value = '';
+                    contentTextarea.value = '';
+                    eventDateInput.value = formattedToday;
+                    
+                    // 重置提醒设置
+                    reminderToggle.checked = false;
+                    reminderSettings.style.display = 'none';
+                }
+            });
+            
+            // 使用Promise.all等待所有操作完成
+            Promise.all(promises)
+                .then(() => {
+                    // 重新加载事件列表
+                    loadNotes();
+                })
+                .catch(error => {
+                    console.error('移动事件到回收站失败:', error);
+                    alert('移动事件到回收站失败，请重试');
+                });
         }
     </script>
 </body>

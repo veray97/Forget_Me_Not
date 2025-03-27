@@ -251,21 +251,124 @@ function setupReminderToggle() {
             setDefaultReminderDate();
         }
     });
+    
+    // 设置重复类型下拉框的变更事件
+    const reminderRepeatSelect = document.getElementById('reminder-repeat');
+    if (reminderRepeatSelect) {
+        reminderRepeatSelect.addEventListener('change', handleReminderRepeatChange);
+    }
+    
+    // 隐藏所有重复选项面板
+    hideAllRepeatOptions();
+    
+    // 设置重复结束日期的默认值
+    const repeatEndDate = document.getElementById('repeat-end-date');
+    if (repeatEndDate) {
+        const defaultEndDate = new Date();
+        defaultEndDate.setMonth(defaultEndDate.getMonth() + 3); // 默认3个月后结束
+        repeatEndDate.value = formatDateForInput(defaultEndDate).substring(0, 10); // 只保留日期部分
+    }
+    
+    // 设置每周重复选项的默认选中日
+    setupWeeklyRepeatDefaults();
+    
+    // 设置管理类别按钮事件
+    const addCategoryBtn = document.getElementById('add-category');
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', showCategoryManager);
+    }
 }
 
-// 设置默认提醒日期为明天
+// 处理重复类型变更
+function handleReminderRepeatChange() {
+    const repeatType = document.getElementById('reminder-repeat').value;
+    
+    // 首先隐藏所有重复选项
+    hideAllRepeatOptions();
+    
+    // 根据选择的重复类型显示对应的选项
+    switch(repeatType) {
+        case 'daily':
+            document.getElementById('repeat-daily-options').style.display = 'block';
+            break;
+        case 'weekly':
+        case 'biweekly':
+            const weeklyOptions = document.getElementById('repeat-weekly-options');
+            weeklyOptions.style.display = 'block';
+            // 如果是双周重复，设置间隔为2
+            if (repeatType === 'biweekly') {
+                document.getElementById('repeat-weekly-interval').value = 2;
+            } else {
+                document.getElementById('repeat-weekly-interval').value = 1;
+            }
+            break;
+        case 'monthly':
+            document.getElementById('repeat-monthly-options').style.display = 'block';
+            break;
+        case 'yearly':
+            document.getElementById('repeat-yearly-options').style.display = 'block';
+            
+            // 设置默认月份为当前月
+            const currentMonth = new Date().getMonth() + 1; // getMonth() 返回 0-11
+            document.getElementById('repeat-yearly-month').value = currentMonth;
+            document.getElementById('repeat-yearly-position-month').value = currentMonth;
+            break;
+    }
+}
+
+// 隐藏所有重复选项面板
+function hideAllRepeatOptions() {
+    const repeatOptions = document.querySelectorAll('.repeat-options');
+    repeatOptions.forEach(option => {
+        option.style.display = 'none';
+    });
+}
+
+// 设置每周重复选项的默认选中日
+function setupWeeklyRepeatDefaults() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0-6，0表示周日
+    
+    // 获取所有星期复选框
+    const weekdayCheckboxes = document.querySelectorAll('.weekday-selector input[type="checkbox"]');
+    
+    // 默认选中今天的星期
+    weekdayCheckboxes.forEach(checkbox => {
+        if (parseInt(checkbox.value) === dayOfWeek) {
+            checkbox.checked = true;
+        }
+    });
+}
+
+// 显示类别管理器
+function showCategoryManager() {
+    // 这里可以实现类别管理的弹窗
+    alert('类别管理功能将在未来版本中实现');
+}
+
+// 设置默认提醒日期（设为明天的当前时间）
 function setDefaultReminderDate() {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // 格式化为 datetime-local 输入框所需的格式
-    const year = tomorrow.getFullYear();
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const day = String(tomorrow.getDate()).padStart(2, '0');
-    const hours = String(tomorrow.getHours()).padStart(2, '0');
-    const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+    // 将时间设置为当前时间
+    const now = new Date();
+    tomorrow.setHours(now.getHours());
+    tomorrow.setMinutes(now.getMinutes());
     
-    reminderDate.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    // 设置日期输入框的值
+    reminderDate.value = formatDateForInput(tomorrow);
+}
+
+// 格式化日期为datetime-local输入框格式
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 // 设置默认Hard DDL日期为一周后
@@ -528,11 +631,9 @@ function loadReminderSettings(project) {
     // 重置提醒设置
     reminderToggle.checked = false;
     reminderSettings.style.display = 'none';
-    reminderDate.value = '';
-    reminderMusic.value = 'default';
-    reminderRepeat.value = 'once';
-    reminderDurationHours.value = '0';
-    reminderDurationMinutes.value = '30';
+    
+    // 重置基本字段
+    resetReminderFields();
     
     // 如果项目有提醒设置，则加载
     if (project.hasReminder) {
@@ -545,13 +646,38 @@ function loadReminderSettings(project) {
             reminderDate.value = formatDateForInput(reminderDateTime);
         }
         
-        // 设置提醒音乐和重复类型
+        // 设置提前提醒时间
+        if (project.reminderAdvance) {
+            const reminderAdvance = document.getElementById('reminder-advance');
+            if (reminderAdvance) {
+                reminderAdvance.value = project.reminderAdvance;
+            }
+        }
+        
+        // 设置提醒音乐
         if (project.reminderMusic) {
             reminderMusic.value = project.reminderMusic;
         }
         
+        // 设置提醒重复
         if (project.reminderRepeat) {
-            reminderRepeat.value = project.reminderRepeat;
+            const reminderRepeatSelect = document.getElementById('reminder-repeat');
+            if (reminderRepeatSelect) {
+                reminderRepeatSelect.value = project.reminderRepeat;
+                // 触发变更事件以显示对应的选项
+                handleReminderRepeatChange();
+                
+                // 加载具体的重复设置
+                loadRepeatSettings(project);
+            }
+        }
+        
+        // 设置类别
+        if (project.reminderCategory) {
+            const categorySelect = document.getElementById('reminder-category');
+            if (categorySelect) {
+                categorySelect.value = project.reminderCategory;
+            }
         }
         
         // 设置预计用时
@@ -564,277 +690,336 @@ function loadReminderSettings(project) {
             reminderDurationHours.value = hours.toString();
             reminderDurationMinutes.value = minutes.toString();
         }
+        
+        // 设置显示选项
+        if (project.reminderShowOverWindows !== undefined) {
+            const showOverWindows = document.getElementById('reminder-show-over-windows');
+            if (showOverWindows) {
+                showOverWindows.checked = project.reminderShowOverWindows;
+            }
+        }
+        
+        if (project.reminderDismissPast !== undefined) {
+            const dismissPast = document.getElementById('reminder-dismiss-past');
+            if (dismissPast) {
+                dismissPast.checked = project.reminderDismissPast;
+            }
+        }
     }
 }
 
-// 格式化日期为datetime-local输入框格式
-function formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+// 重置提醒字段为默认值
+function resetReminderFields() {
+    reminderDate.value = '';
     
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const reminderAdvance = document.getElementById('reminder-advance');
+    if (reminderAdvance) reminderAdvance.value = '15';
+    
+    reminderMusic.value = 'default';
+    
+    const reminderRepeat = document.getElementById('reminder-repeat');
+    if (reminderRepeat) reminderRepeat.value = 'once';
+    
+    const reminderCategory = document.getElementById('reminder-category');
+    if (reminderCategory) reminderCategory.value = 'none';
+    
+    reminderDurationHours.value = '0';
+    reminderDurationMinutes.value = '30';
+    
+    const showOverWindows = document.getElementById('reminder-show-over-windows');
+    if (showOverWindows) showOverWindows.checked = true;
+    
+    const dismissPast = document.getElementById('reminder-dismiss-past');
+    if (dismissPast) dismissPast.checked = true;
+    
+    // 重置所有重复选项
+    resetRepeatOptions();
+    
+    // 隐藏所有重复选项面板
+    hideAllRepeatOptions();
 }
 
-// 格式化Hard DDL日期为mm/dd/yyyy hh:mins格式
-function formatDateForHardDDL(date) {
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+// 重置重复选项为默认值
+function resetRepeatOptions() {
+    // 重置每日重复
+    const dailyInterval = document.getElementById('repeat-daily-interval');
+    if (dailyInterval) dailyInterval.value = '1';
     
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
+    // 重置每周重复
+    const weeklyInterval = document.getElementById('repeat-weekly-interval');
+    if (weeklyInterval) weeklyInterval.value = '1';
+    
+    // 取消选中所有星期
+    const weekdayCheckboxes = document.querySelectorAll('.weekday-selector input[type="checkbox"]');
+    weekdayCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // 重置每月重复
+    const monthlyInterval = document.getElementById('repeat-monthly-interval');
+    if (monthlyInterval) monthlyInterval.value = '1';
+    
+    const monthlyDay = document.getElementById('repeat-monthly-day');
+    if (monthlyDay) monthlyDay.value = '1';
+    
+    // 选中按日期重复
+    const monthlyDayRadio = document.getElementById('monthly-day');
+    if (monthlyDayRadio) monthlyDayRadio.checked = true;
+    
+    const monthlyPositionInterval = document.getElementById('repeat-monthly-position-interval');
+    if (monthlyPositionInterval) monthlyPositionInterval.value = '1';
+    
+    const monthlyPosition = document.getElementById('repeat-monthly-position');
+    if (monthlyPosition) monthlyPosition.value = 'first';
+    
+    const monthlyDayOfWeek = document.getElementById('repeat-monthly-day-of-week');
+    if (monthlyDayOfWeek) monthlyDayOfWeek.value = 'day';
+    
+    // 重置每年重复
+    const yearlyMonth = document.getElementById('repeat-yearly-month');
+    if (yearlyMonth) yearlyMonth.value = '1';
+    
+    const yearlyDay = document.getElementById('repeat-yearly-day');
+    if (yearlyDay) yearlyDay.value = '1';
+    
+    // 选中按日期重复
+    const yearlyDateRadio = document.getElementById('yearly-date');
+    if (yearlyDateRadio) yearlyDateRadio.checked = true;
+    
+    const yearlyPositionMonth = document.getElementById('repeat-yearly-position-month');
+    if (yearlyPositionMonth) yearlyPositionMonth.value = '1';
+    
+    const yearlyPosition = document.getElementById('repeat-yearly-position');
+    if (yearlyPosition) yearlyPosition.value = 'first';
+    
+    const yearlyDayOfWeek = document.getElementById('repeat-yearly-day-of-week');
+    if (yearlyDayOfWeek) yearlyDayOfWeek.value = 'day';
+    
+    // 重置结束条件
+    const noEndRadio = document.getElementById('repeat-no-end');
+    if (noEndRadio) noEndRadio.checked = true;
+    
+    const endCount = document.getElementById('repeat-end-count');
+    if (endCount) endCount.value = '10';
+    
+    // 设置结束日期为3个月后
+    const endDate = document.getElementById('repeat-end-date');
+    if (endDate) {
+        const defaultEndDate = new Date();
+        defaultEndDate.setMonth(defaultEndDate.getMonth() + 3);
+        endDate.value = formatDateForInput(defaultEndDate).substring(0, 10);
+    }
 }
 
-// 更新图表
-function updateChart() {
-    // 更新标题显示未更新天数
-    updateChartTitle();
+// 加载重复设置
+function loadRepeatSettings(project) {
+    if (!project.reminderRepeatSettings) return;
     
-    // 清空现有数据
-    progressData.labels = [];
-    progressData.datasets[0].data = [];
+    const settings = project.reminderRepeatSettings;
+    const repeatType = project.reminderRepeat;
     
-    // 获取所有进度条目
-    const entryElements = progressEntries.querySelectorAll('.progress-entry');
-    
-    // 按日期排序（升序）
-    const entries = [];
-    entryElements.forEach(entryEl => {
-        const dateEl = entryEl.querySelector('.progress-entry-date');
-        const progressEl = entryEl.querySelector('.progress-entry-progress');
-        
-        if (dateEl && progressEl) {
-            const date = dateEl.value;  // 从输入框获取日期值
-            const progress = parseInt(progressEl.value) || 0;
+    switch(repeatType) {
+        case 'daily':
+            if (settings.interval) {
+                const dailyInterval = document.getElementById('repeat-daily-interval');
+                if (dailyInterval) dailyInterval.value = settings.interval;
+            }
+            break;
             
-            entries.push({ date, progress });
-        }
-    });
-    
-    // 按日期排序
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // 填充数据
-    entries.forEach(entry => {
-        const date = new Date(entry.date);
-        const dateStr = formatDateForChart(date);
-        
-        progressData.labels.push(dateStr);
-        progressData.datasets[0].data.push(entry.progress);
-    });
-    
-    // 如果没有数据，添加一个空的数据点
-    if (progressData.labels.length === 0) {
-        const today = new Date();
-        const todayStr = formatDateForChart(today);
-        
-        progressData.labels.push(todayStr);
-        progressData.datasets[0].data.push(0);
-    }
-    
-    // 更新图表
-    if (progressChart) {
-        progressChart.update();
-    } else {
-        initChart();
-    }
-}
-
-// 更新图表标题以显示未更新天数
-function updateChartTitle() {
-    const chartTitle = document.getElementById('chart-title');
-    if (!chartTitle) return;
-    
-    // 获取最新的进度记录日期
-    const entryElements = progressEntries.querySelectorAll('.progress-entry');
-    if (entryElements.length === 0) {
-        chartTitle.textContent = '进度追踪';
-        return;
-    }
-    
-    // 找到最新的日期
-    let latestDate = null;
-    entryElements.forEach(entryEl => {
-        const dateEl = entryEl.querySelector('.progress-entry-date');
-        if (dateEl) {
-            const date = new Date(dateEl.value);  // 从输入框获取日期值
-            if (!latestDate || date > latestDate) {
-                latestDate = date;
+        case 'weekly':
+        case 'biweekly':
+            if (settings.interval) {
+                const weeklyInterval = document.getElementById('repeat-weekly-interval');
+                if (weeklyInterval) weeklyInterval.value = settings.interval;
             }
-        }
-    });
-    
-    if (!latestDate) {
-        chartTitle.textContent = '进度追踪';
-        return;
-    }
-    
-    // 计算与当前日期的差距
-    const today = new Date();
-    const diffTime = Math.abs(today - latestDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    // 更新标题
-    if (diffDays <= 0) {
-        chartTitle.textContent = '今天已更新项目进度';
-    } else if (diffDays === 1) {
-        chartTitle.textContent = '1天未更新项目进度';
-    } else {
-        chartTitle.textContent = `${diffDays}天未更新项目进度`;
-    }
-}
-
-// 格式化日期为图表显示格式
-function formatDateForChart(date) {
-    return `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}-${date.getFullYear()}`;
-}
-
-// 初始化图表
-function initChart() {
-    const ctx = document.getElementById('progress-chart').getContext('2d');
-    progressChart = new Chart(ctx, {
-        type: 'line',
-        data: progressData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: '进度 (%)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: '日期'
-                    }
+            
+            if (settings.daysOfWeek && Array.isArray(settings.daysOfWeek)) {
+                const weekdayCheckboxes = document.querySelectorAll('.weekday-selector input[type="checkbox"]');
+                weekdayCheckboxes.forEach(checkbox => {
+                    const dayValue = parseInt(checkbox.value);
+                    checkbox.checked = settings.daysOfWeek.includes(dayValue);
+                });
+            }
+            break;
+            
+        case 'monthly':
+            if (settings.type === 'day') {
+                // 按日期重复
+                const monthlyDayRadio = document.getElementById('monthly-day');
+                if (monthlyDayRadio) monthlyDayRadio.checked = true;
+                
+                if (settings.interval) {
+                    const monthlyInterval = document.getElementById('repeat-monthly-interval');
+                    if (monthlyInterval) monthlyInterval.value = settings.interval;
+                }
+                
+                if (settings.dayOfMonth) {
+                    const monthlyDay = document.getElementById('repeat-monthly-day');
+                    if (monthlyDay) monthlyDay.value = settings.dayOfMonth;
+                }
+            } else if (settings.type === 'position') {
+                // 按位置重复
+                const monthlyPositionRadio = document.getElementById('monthly-position');
+                if (monthlyPositionRadio) monthlyPositionRadio.checked = true;
+                
+                if (settings.interval) {
+                    const monthlyPositionInterval = document.getElementById('repeat-monthly-position-interval');
+                    if (monthlyPositionInterval) monthlyPositionInterval.value = settings.interval;
+                }
+                
+                if (settings.position) {
+                    const monthlyPosition = document.getElementById('repeat-monthly-position');
+                    if (monthlyPosition) monthlyPosition.value = settings.position;
+                }
+                
+                if (settings.dayOfWeek) {
+                    const monthlyDayOfWeek = document.getElementById('repeat-monthly-day-of-week');
+                    if (monthlyDayOfWeek) monthlyDayOfWeek.value = settings.dayOfWeek;
                 }
             }
+            break;
+            
+        case 'yearly':
+            if (settings.type === 'date') {
+                // 按日期重复
+                const yearlyDateRadio = document.getElementById('yearly-date');
+                if (yearlyDateRadio) yearlyDateRadio.checked = true;
+                
+                if (settings.month) {
+                    const yearlyMonth = document.getElementById('repeat-yearly-month');
+                    if (yearlyMonth) yearlyMonth.value = settings.month;
+                }
+                
+                if (settings.dayOfMonth) {
+                    const yearlyDay = document.getElementById('repeat-yearly-day');
+                    if (yearlyDay) yearlyDay.value = settings.dayOfMonth;
+                }
+            } else if (settings.type === 'position') {
+                // 按位置重复
+                const yearlyPositionRadio = document.getElementById('yearly-position');
+                if (yearlyPositionRadio) yearlyPositionRadio.checked = true;
+                
+                if (settings.month) {
+                    const yearlyPositionMonth = document.getElementById('repeat-yearly-position-month');
+                    if (yearlyPositionMonth) yearlyPositionMonth.value = settings.month;
+                }
+                
+                if (settings.position) {
+                    const yearlyPosition = document.getElementById('repeat-yearly-position');
+                    if (yearlyPosition) yearlyPosition.value = settings.position;
+                }
+                
+                if (settings.dayOfWeek) {
+                    const yearlyDayOfWeek = document.getElementById('repeat-yearly-day-of-week');
+                    if (yearlyDayOfWeek) yearlyDayOfWeek.value = settings.dayOfWeek;
+                }
+            }
+            break;
+    }
+    
+    // 加载结束条件
+    if (settings.end) {
+        if (settings.end.type === 'noEnd') {
+            const noEndRadio = document.getElementById('repeat-no-end');
+            if (noEndRadio) noEndRadio.checked = true;
+        } else if (settings.end.type === 'afterCount' && settings.end.count) {
+            const endAfterRadio = document.getElementById('repeat-end-after');
+            if (endAfterRadio) endAfterRadio.checked = true;
+            
+            const endCount = document.getElementById('repeat-end-count');
+            if (endCount) endCount.value = settings.end.count;
+        } else if (settings.end.type === 'byDate' && settings.end.date) {
+            const endByRadio = document.getElementById('repeat-end-by');
+            if (endByRadio) endByRadio.checked = true;
+            
+            const endDate = document.getElementById('repeat-end-date');
+            if (endDate) endDate.value = settings.end.date;
         }
-    });
+    }
 }
 
-// 保存项目
-function saveProject(callback) {
-    console.log('saveProject 函数已触发');
+// 收集重复设置
+function collectRepeatSettings() {
+    const repeatType = document.getElementById('reminder-repeat').value;
     
-    // 检查用户是否已登录
-    const user = firebase.auth().currentUser;
+    if (repeatType === 'once') {
+        return null; // 不重复，不需要收集设置
+    }
     
-    if (!user) {
-        console.log('同步检查未发现用户，尝试异步检查...');
-        
-        // 如果同步检查未发现用户，尝试使用异步方法
-        firebase.auth().onAuthStateChanged(function(asyncUser) {
-            if (asyncUser) {
-                console.log('异步检查发现用户，继续保存...');
-                // 找到用户后，继续保存过程
-                continueProjectSave(asyncUser, callback);
+    const settings = {};
+    
+    switch(repeatType) {
+        case 'daily':
+            settings.interval = parseInt(document.getElementById('repeat-daily-interval').value) || 1;
+            break;
+            
+        case 'weekdays':
+            settings.type = 'weekdays';
+            settings.daysOfWeek = [1, 2, 3, 4, 5]; // 周一到周五
+            break;
+            
+        case 'weekly':
+        case 'biweekly':
+            settings.interval = parseInt(document.getElementById('repeat-weekly-interval').value) || 1;
+            settings.daysOfWeek = [];
+            
+            // 收集选中的星期
+            const weekdayCheckboxes = document.querySelectorAll('.weekday-selector input[type="checkbox"]:checked');
+            weekdayCheckboxes.forEach(checkbox => {
+                settings.daysOfWeek.push(parseInt(checkbox.value));
+            });
+            
+            // 如果没有选中任何星期，默认选择今天
+            if (settings.daysOfWeek.length === 0) {
+                settings.daysOfWeek = [new Date().getDay()];
+            }
+            break;
+            
+        case 'monthly':
+            if (document.getElementById('monthly-day').checked) {
+                // 按日期重复
+                settings.type = 'day';
+                settings.interval = parseInt(document.getElementById('repeat-monthly-interval').value) || 1;
+                settings.dayOfMonth = parseInt(document.getElementById('repeat-monthly-day').value) || 1;
             } else {
-                console.error('用户未登录，无法保存项目');
-                alert('用户未登录，无法保存项目，请重新登录');
-                window.location.href = '/login.html';
+                // 按位置重复
+                settings.type = 'position';
+                settings.interval = parseInt(document.getElementById('repeat-monthly-position-interval').value) || 1;
+                settings.position = document.getElementById('repeat-monthly-position').value;
+                settings.dayOfWeek = document.getElementById('repeat-monthly-day-of-week').value;
             }
-        });
-    } else {
-        // 用户已登录，直接继续
-        console.log('同步检查发现用户，继续保存...');
-        continueProjectSave(user, callback);
-    }
-}
-
-// 继续保存项目（在确认用户已登录后）
-function continueProjectSave(user, callback) {
-    console.log('继续保存项目，用户ID:', user.uid);
-    
-    // 获取用户特定的项目引用
-    const userProjects = firebase.database().ref(`users/${user.uid}/projects`);
-    
-    // 获取项目数据
-    const projectData = getProjectData();
-    if (!projectData) {
-        console.error('获取项目数据失败');
-        return;
+            break;
+            
+        case 'yearly':
+            if (document.getElementById('yearly-date').checked) {
+                // 按日期重复
+                settings.type = 'date';
+                settings.month = parseInt(document.getElementById('repeat-yearly-month').value) || 1;
+                settings.dayOfMonth = parseInt(document.getElementById('repeat-yearly-day').value) || 1;
+            } else {
+                // 按位置重复
+                settings.type = 'position';
+                settings.month = parseInt(document.getElementById('repeat-yearly-position-month').value) || 1;
+                settings.position = document.getElementById('repeat-yearly-position').value;
+                settings.dayOfWeek = document.getElementById('repeat-yearly-day-of-week').value;
+            }
+            break;
     }
     
-    // 显示保存中状态
-    showSavingState();
+    // 收集结束条件
+    settings.end = {};
     
-    // 保存到Firebase
-    if (projectId) {
-        // 更新现有项目
-        console.log('更新现有项目:', projectId);
-        userProjects.child(projectId).update(projectData)
-            .then(() => {
-                console.log('项目更新成功');
-                restoreSaveButton();
-                
-                // 重置更改状态
-                hasUnsavedChanges = false;
-                originalContent = JSON.stringify(quill.getContents());
-                originalProgressEntries = collectProgressEntries();
-                
-                // 如果有回调函数则执行它
-                if (typeof callback === 'function') {
-                    callback();
-                    return;
-                }
-                
-                // 询问用户是否返回象限页面
-                if (confirm('项目保存成功！是否返回象限页面？')) {
-                    window.location.href = '/time-quadrant.html';
-                } else {
-                    // 重新加载进度历史
-                    loadProgressEntries(projectData);
-                }
-            })
-            .catch((error) => {
-                console.error('保存项目失败:', error);
-                alert('保存项目失败: ' + error.message);
-                restoreSaveButton();
-            });
-    } else {
-        // 创建新项目
-        console.log('创建新项目');
-        userProjects.push(projectData)
-            .then((ref) => {
-                console.log('新项目创建成功，ID:', ref.key);
-                restoreSaveButton();
-                
-                // 重置更改状态
-                hasUnsavedChanges = false;
-                projectId = ref.key; // 更新项目ID
-                originalContent = JSON.stringify(quill.getContents());
-                originalProgressEntries = collectProgressEntries();
-                
-                // 如果有回调函数则执行它
-                if (typeof callback === 'function') {
-                    callback();
-                    return;
-                }
-                
-                // 询问用户是否返回象限页面
-                if (confirm('项目创建成功！是否返回象限页面？')) {
-                    window.location.href = '/time-quadrant.html';
-                } else {
-                    // 重定向到带有新项目ID的URL
-                    window.location.href = `/project-detail.html?id=${ref.key}`;
-                }
-            })
-            .catch((error) => {
-                console.error('创建项目失败:', error);
-                alert('创建项目失败: ' + error.message);
-                restoreSaveButton();
-            });
+    if (document.getElementById('repeat-no-end').checked) {
+        settings.end.type = 'noEnd';
+    } else if (document.getElementById('repeat-end-after').checked) {
+        settings.end.type = 'afterCount';
+        settings.end.count = parseInt(document.getElementById('repeat-end-count').value) || 10;
+    } else if (document.getElementById('repeat-end-by').checked) {
+        settings.end.type = 'byDate';
+        settings.end.date = document.getElementById('repeat-end-date').value;
     }
+    
+    return settings;
 }
 
 // 获取项目数据
@@ -895,13 +1080,46 @@ function getProjectData() {
             updates.reminderTime = new Date(reminderDate.value).getTime();
         }
         
+        // 保存提前提醒时间
+        const reminderAdvance = document.getElementById('reminder-advance');
+        if (reminderAdvance) {
+            updates.reminderAdvance = reminderAdvance.value;
+        }
+        
         updates.reminderMusic = reminderMusic.value;
-        updates.reminderRepeat = reminderRepeat.value;
+        
+        // 保存重复设置
+        const reminderRepeat = document.getElementById('reminder-repeat');
+        if (reminderRepeat) {
+            updates.reminderRepeat = reminderRepeat.value;
+            
+            // 如果有重复设置，收集详细设置
+            if (reminderRepeat.value !== 'once') {
+                updates.reminderRepeatSettings = collectRepeatSettings();
+            }
+        }
+        
+        // 保存类别
+        const reminderCategory = document.getElementById('reminder-category');
+        if (reminderCategory) {
+            updates.reminderCategory = reminderCategory.value;
+        }
         
         // 保存预计用时（转换为总分钟数）
         const hours = parseInt(reminderDurationHours.value) || 0;
         const minutes = parseInt(reminderDurationMinutes.value) || 0;
         updates.reminderDuration = hours * 60 + minutes;
+        
+        // 保存显示选项
+        const showOverWindows = document.getElementById('reminder-show-over-windows');
+        if (showOverWindows) {
+            updates.reminderShowOverWindows = showOverWindows.checked;
+        }
+        
+        const dismissPast = document.getElementById('reminder-dismiss-past');
+        if (dismissPast) {
+            updates.reminderDismissPast = dismissPast.checked;
+        }
     } else {
         updates.hasReminder = false;
     }
@@ -927,18 +1145,6 @@ function getProjectData() {
     });
     
     return updates;
-}
-
-// 显示保存中状态
-function showSavingState() {
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
-}
-
-// 恢复保存按钮状态
-function restoreSaveButton() {
-    saveBtn.disabled = false;
-    saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
 }
 
 // 初始化语音输入和弹窗对话框
@@ -1281,43 +1487,18 @@ function setupChangeTracking() {
 function deleteProject() {
     console.log('deleteProject 函数已触发');
     
-    // 如果有未保存的更改，先询问用户是否保存
-    if (hasUnsavedChanges) {
-        const saveChoice = confirm('您有未保存的更改，删除前是否需要保存？\n\n- 点击"确定"先保存再删除\n- 点击"取消"直接删除不保存');
-        
-        if (saveChoice) {
-            // 先保存再删除
-            saveProject(function() {
-                // 保存完成后执行删除
-                confirmAndDeleteProject();
-            });
-            return;
-        }
-    }
-    
-    // 没有未保存的更改或用户选择不保存，直接执行删除确认
-    confirmAndDeleteProject();
-}
-
-// 确认并删除项目
-function confirmAndDeleteProject() {
-    // 确认删除
-    if (!confirm('确定要删除此项目吗？此操作不可撤销。')) {
-        return;
-    }
-    
     // 检查用户是否已登录
     const user = firebase.auth().currentUser;
     
     if (!user) {
-        console.log('同步检查未发现用户，尝试异步检查...');
+        console.log('用户未登录，尝试异步检查...');
         
         // 如果同步检查未发现用户，尝试使用异步方法
         firebase.auth().onAuthStateChanged(function(asyncUser) {
             if (asyncUser) {
-                console.log('异步检查发现用户，继续删除...');
-                // 找到用户后，继续删除过程
-                continueProjectDelete(asyncUser);
+                console.log('异步检查发现用户');
+                // 找到用户后，继续处理
+                processDelete();
             } else {
                 console.error('用户未登录，无法删除项目');
                 alert('用户未登录，无法删除项目，请重新登录');
@@ -1326,13 +1507,33 @@ function confirmAndDeleteProject() {
         });
     } else {
         // 用户已登录，直接继续
-        console.log('同步检查发现用户，继续删除...');
-        continueProjectDelete(user);
+        processDelete();
+    }
+    
+    function processDelete() {
+        // 如果有未保存的更改，先保存再删除
+        if (hasUnsavedChanges) {
+            saveProject(function() {
+                // 保存完成后执行删除
+                continueProjectDelete();
+            });
+        } else {
+            // 没有未保存的更改，直接执行删除
+            continueProjectDelete();
+        }
     }
 }
 
-// 继续删除项目（在确认用户已登录后）
-function continueProjectDelete(user) {
+// 继续删除项目
+function continueProjectDelete() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.error('用户未登录，无法删除项目');
+        alert('用户未登录，无法删除项目，请重新登录');
+        window.location.href = '/login.html';
+        return;
+    }
+    
     console.log('继续删除项目，用户ID:', user.uid);
     
     // 获取用户特定的项目引用
@@ -1343,12 +1544,29 @@ function continueProjectDelete(user) {
     
     // 从Firebase删除
     if (projectId) {
-        // 删除项目
-        console.log('删除项目:', projectId);
-        userProjects.child(projectId).remove()
+        // 先获取项目数据
+        userProjects.child(projectId).once('value')
+            .then((snapshot) => {
+                if (snapshot.exists()) {
+                    const projectData = snapshot.val();
+                    
+                    // 添加删除时间和类型标记
+                    projectData.deletedAt = Date.now();
+                    projectData.type = 'project';
+                    
+                    // 将项目移动到回收站
+                    const trashRef = firebase.database().ref(`users/${user.uid}/trash/${projectId}`);
+                    
+                    return trashRef.set(projectData).then(() => {
+                        // 移动成功后，从项目列表中删除
+                        return userProjects.child(projectId).remove();
+                    });
+                } else {
+                    throw new Error('找不到项目数据');
+                }
+            })
             .then(() => {
-                console.log('项目删除成功');
-                alert('项目已成功删除');
+                console.log('项目已移动到回收站');
                 // 删除成功后返回象限页面
                 window.location.href = '/time-quadrant.html';
             })
@@ -1368,7 +1586,7 @@ function continueProjectDelete(user) {
 // 显示删除中状态
 function showDeletingState() {
     deleteBtn.disabled = true;
-    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在移动到回收站...';
 }
 
 // 恢复删除按钮状态
