@@ -2,6 +2,9 @@
 
 一个功能强大的任务和笔记管理应用，使用Firebase Realtime Database存储数据，帮助您更有效地规划和跟踪工作与生活中的各项任务。
 
+Try it in https://verasdatabase.web.app/
+(Now I'm still working to create an English version of this web app)
+
 ## 核心功能
 
 - **时间四象限管理**：基于紧急性和重要性分类任务
